@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { allSpecies, type SpeciesItem } from '$lib/calc/generation';
+	import { pickableSpecies, speciesLabel, type SpeciesItem } from '$lib/calc/generation';
 	import SearchableCombobox from './SearchableCombobox.svelte';
 	import SpeciesSprite from './SpeciesSprite.svelte';
 
@@ -7,12 +7,12 @@
 </script>
 
 <SearchableCombobox
-	items={allSpecies}
+	items={pickableSpecies}
 	bind:selected
-	getLabel={(s) => s.name}
+	getLabel={speciesLabel}
 	placeholder="Select a Pokémon…"
 >
 	{#snippet icon(species: SpeciesItem)}
-		<SpeciesSprite speciesName={species.name} size={24} />
+		<SpeciesSprite {species} size={24} />
 	{/snippet}
 </SearchableCombobox>

@@ -2,7 +2,8 @@
 	import { allNatures, STAT_LABELS, type NatureInfo } from '$lib/calc/format';
 	import SearchableCombobox from './SearchableCombobox.svelte';
 
-	let { selected = $bindable() }: { selected: NatureInfo } = $props();
+	let { selected = $bindable(), disabled = false }: { selected: NatureInfo; disabled?: boolean } =
+		$props();
 
 	function label(nature: NatureInfo): string {
 		if (nature.plus === nature.minus) return nature.name;
@@ -16,4 +17,5 @@
 	getLabel={label}
 	placeholder="Select a nature…"
 	clearable={false}
+	{disabled}
 />
