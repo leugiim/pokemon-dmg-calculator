@@ -8,7 +8,8 @@
 		placeholder = 'Select…',
 		icon,
 		clearable = true,
-		disabled = false
+		disabled = false,
+		class: className = ''
 	}: {
 		items: T[];
 		selected?: T | null;
@@ -18,6 +19,8 @@
 		/** Whether a selection can be cleared back to `null` (default true). */
 		clearable?: boolean;
 		disabled?: boolean;
+		/** Extra classes for the root element — e.g. flex sizing when placed in a row. */
+		class?: string;
 	} = $props();
 
 	let query = $state('');
@@ -76,9 +79,9 @@
 	}
 </script>
 
-<div class="relative">
+<div class="relative {className}">
 	<div
-		class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 {disabled
+		class="flex h-8 items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 {disabled
 			? 'opacity-40'
 			: ''}"
 	>
