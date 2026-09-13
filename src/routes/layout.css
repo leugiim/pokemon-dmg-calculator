@@ -1,3 +1,13 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+/*
+ * Reserve the vertical scrollbar's gutter permanently. Without this,
+ * a combobox dropdown opening near the bottom of the page can grow
+ * the document just enough to toggle the scrollbar on, which shifts
+ * the whole (unscrollable-width) layout sideways.
+ */
+html {
+	scrollbar-gutter: stable;
+}
