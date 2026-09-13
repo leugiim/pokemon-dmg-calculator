@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { TeamSlot } from '$lib/stores/team.svelte';
 	import PokemonCombobox from './PokemonCombobox.svelte';
+	import ItemCombobox from './ItemCombobox.svelte';
+	import NatureCombobox from './NatureCombobox.svelte';
 	import SpeciesSprite from './SpeciesSprite.svelte';
+	import StatPointBars from './StatPointBars.svelte';
 	import TypeBadge from './TypeBadge.svelte';
 
 	let { slot, label }: { slot: TeamSlot; label: number } = $props();
@@ -30,5 +33,17 @@
 
 	<div class="w-full">
 		<PokemonCombobox bind:selected={slot.species} />
+	</div>
+
+	<div class="w-full">
+		<ItemCombobox bind:selected={slot.item} />
+	</div>
+
+	<div class="w-full">
+		<NatureCombobox bind:selected={slot.nature} />
+	</div>
+
+	<div class="w-full border-t border-gray-100 pt-2">
+		<StatPointBars species={slot.species} nature={slot.nature} bind:statPoints={slot.statPoints} />
 	</div>
 </div>

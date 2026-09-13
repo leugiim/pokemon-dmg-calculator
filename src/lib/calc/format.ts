@@ -1,6 +1,6 @@
 import { NATURES, type StatID } from '@smogon/calc';
 
-export type NatureName = keyof typeof NATURES;
+export type NatureName = Extract<keyof typeof NATURES, string>;
 
 /**
  * Pokemon Champions' format rules — always in effect, no toggle:
@@ -22,6 +22,17 @@ export const MAX_SP_TOTAL = 66;
 /** A Pokémon's Stat Point allocation across its six stats. */
 export type StatPoints = Record<StatID, number>;
 
+export const STAT_ORDER: StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+export const STAT_LABELS: Record<StatID, string> = {
+	hp: 'HP',
+	atk: 'Atk',
+	def: 'Def',
+	spa: 'SpA',
+	spd: 'SpD',
+	spe: 'Spe'
+};
+
 export function emptyStatPoints(): StatPoints {
 	return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 }
@@ -30,12 +41,27 @@ export function totalStatPoints(sp: StatPoints): number {
 	return sp.hp + sp.atk + sp.def + sp.spa + sp.spd + sp.spe;
 }
 
-function natureModifier(nature: NatureName, stat: StatID): number {
+export interface NatureInfo {
+	name: NatureName;
+	/** Stat this nature raises by 10% — same as `minus` for a neutral nature. */
+	plus: StatID;
+	/** Stat this nature lowers by 10% — same as `plus` for a neutral nature. */
+	minus: StatID;
+}
+
+/** All 25 natures, sorted alphabetically. A neutral nature has `plus === minus`. */
+export const allNatures: NatureInfo[] = Object.entries(NATURES)
+	.map(([name, [plus, minus]]) => ({ name: name as NatureName, plus, minus }))
+	.sort((a, b) => a.name.localeCompare(b.name));
+
+/** Default nature for a freshly picked (or reset) team slot — no +/- on any stat. */
+export const NEUTRAL_NATURE: NatureInfo = allNatures.find((n) => n.name === 'Hardy')!;
+
+function natureModifier(nature: NatureInfo, stat: StatID): number {
 	if (stat === 'hp') return 1; // nature never affects HP
-	const [plus, minus] = NATURES[nature];
-	if (plus === minus) return 1;
-	if (stat === plus) return 1.1;
-	if (stat === minus) return 0.9;
+	if (nature.plus === nature.minus) return 1;
+	if (stat === nature.plus) return 1.1;
+	if (stat === nature.minus) return 0.9;
 	return 1;
 }
 
@@ -50,7 +76,7 @@ export function calcChampionsStat(
 	base: number,
 	stat: StatID,
 	sp: number,
-	nature: NatureName
+	nature: NatureInfo
 ): number {
 	const raw = Math.floor(((2 * base + FIXED_IV) * LEVEL) / 100);
 	if (stat === 'hp') {

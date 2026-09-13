@@ -1,4 +1,11 @@
 import type { SpeciesItem } from '$lib/calc/generation';
+import type { HeldItem } from '$lib/calc/items';
+import {
+	emptyStatPoints,
+	NEUTRAL_NATURE,
+	type NatureInfo,
+	type StatPoints
+} from '$lib/calc/format';
 
 /**
  * Neither side is fixed as "the attacker" — damage is calculated both
@@ -8,12 +15,27 @@ import type { SpeciesItem } from '$lib/calc/generation';
 export type Side = 'teamA' | 'teamB';
 
 /**
- * A single team slot. Only species selection for now — level, item,
- * ability, moves, EVs/IVs, etc. will be added once the calculation side
- * of the app needs them.
+ * A single team slot. Ability and moves are still missing — will be
+ * added once the rest of the calculation side of the app needs them.
  */
 export class TeamSlot {
-	species = $state<SpeciesItem | null>(null);
+	#species = $state<SpeciesItem | null>(null);
+	item = $state<HeldItem | null>(null);
+	nature = $state<NatureInfo>(NEUTRAL_NATURE);
+	statPoints = $state<StatPoints>(emptyStatPoints());
+
+	get species(): SpeciesItem | null {
+		return this.#species;
+	}
+
+	/** Switching species voids the item, nature, and stat points chosen for the previous one. */
+	set species(value: SpeciesItem | null) {
+		if (value === this.#species) return;
+		this.#species = value;
+		this.item = null;
+		this.nature = NEUTRAL_NATURE;
+		this.statPoints = emptyStatPoints();
+	}
 }
 
 function createSide(): [TeamSlot, TeamSlot] {

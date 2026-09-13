@@ -1,36 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import {
+	allNatures,
 	calcChampionsStat,
 	totalStatPoints,
 	emptyStatPoints,
 	MAX_SP_TOTAL,
-	MAX_SP_PER_STAT
+	MAX_SP_PER_STAT,
+	type NatureName
 } from '$lib/calc/format';
+
+function nature(name: NatureName) {
+	return allNatures.find((n) => n.name === name)!;
+}
 
 describe('calcChampionsStat', () => {
 	it('matches the standard level 50 / 31 IV / 0 SP baseline for HP', () => {
 		// Base 100 HP, no SP: floor((2*100+31)*50/100) + 50 + 10 = 115 + 60 = 175
-		expect(calcChampionsStat(100, 'hp', 0, 'Hardy')).toBe(175);
+		expect(calcChampionsStat(100, 'hp', 0, nature('Hardy'))).toBe(175);
 	});
 
 	it('adds SP as a flat +1 to a non-HP stat before the nature modifier', () => {
-		const withoutSp = calcChampionsStat(100, 'atk', 0, 'Hardy');
-		const withSp = calcChampionsStat(100, 'atk', 10, 'Hardy');
+		const withoutSp = calcChampionsStat(100, 'atk', 0, nature('Hardy'));
+		const withSp = calcChampionsStat(100, 'atk', 10, nature('Hardy'));
 		expect(withSp - withoutSp).toBe(10);
 	});
 
 	it('applies a +10% boost for a nature-boosted stat', () => {
 		// Base 100, 0 SP, neutral: floor((2*100+31)*50/100)+5 = 115+5 = 120
-		expect(calcChampionsStat(100, 'atk', 0, 'Hardy')).toBe(120);
+		expect(calcChampionsStat(100, 'atk', 0, nature('Hardy'))).toBe(120);
 		// Adamant boosts Atk: floor(120 * 1.1) = 132
-		expect(calcChampionsStat(100, 'atk', 0, 'Adamant')).toBe(132);
+		expect(calcChampionsStat(100, 'atk', 0, nature('Adamant'))).toBe(132);
 		// ...and hinders SpA: floor(120 * 0.9) = 108
-		expect(calcChampionsStat(100, 'spa', 0, 'Adamant')).toBe(108);
+		expect(calcChampionsStat(100, 'spa', 0, nature('Adamant'))).toBe(108);
 	});
 
 	it('never lets nature affect HP', () => {
-		expect(calcChampionsStat(100, 'hp', 0, 'Adamant')).toBe(
-			calcChampionsStat(100, 'hp', 0, 'Hardy')
+		expect(calcChampionsStat(100, 'hp', 0, nature('Adamant'))).toBe(
+			calcChampionsStat(100, 'hp', 0, nature('Hardy'))
 		);
 	});
 });
