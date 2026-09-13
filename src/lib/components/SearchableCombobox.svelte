@@ -7,7 +7,8 @@
 		getLabel,
 		placeholder = 'Select…',
 		icon,
-		clearable = true
+		clearable = true,
+		disabled = false
 	}: {
 		items: T[];
 		selected?: T | null;
@@ -16,6 +17,7 @@
 		icon?: Snippet<[T]>;
 		/** Whether a selection can be cleared back to `null` (default true). */
 		clearable?: boolean;
+		disabled?: boolean;
 	} = $props();
 
 	let query = $state('');
@@ -76,7 +78,9 @@
 
 <div class="relative">
 	<div
-		class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
+		class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 {disabled
+			? 'opacity-40'
+			: ''}"
 	>
 		{#if selected && !open && icon}
 			{@render icon(selected)}
@@ -87,6 +91,7 @@
 			class="w-full border-none p-0 text-sm focus:ring-0"
 			placeholder={selected && !open ? getLabel(selected) : placeholder}
 			bind:value={query}
+			{disabled}
 			onfocus={onFocus}
 			onblur={() => setTimeout(() => (open = false), 100)}
 			onkeydown={onKeydown}
@@ -96,6 +101,7 @@
 				type="button"
 				class="shrink-0 text-gray-400 hover:text-gray-600"
 				onclick={clear}
+				{disabled}
 				aria-label="Clear selection"
 			>
 				✕
