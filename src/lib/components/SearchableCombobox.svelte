@@ -28,13 +28,12 @@
 	let highlighted = $state(0);
 	let inputEl: HTMLInputElement | undefined;
 
-	/** Cap the rendered list so a broad (or empty) query doesn't dump the whole dataset into the DOM. */
-	const MAX_RESULTS = 100;
-
+	// No cap here: even the biggest list (species, ~1500) is still just
+	// plain rows in a scrollable box — cheap enough to render in full,
+	// and capping it hid entries a query hadn't narrowed down to yet.
 	const results = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		const matches = q ? items.filter((item) => getLabel(item).toLowerCase().includes(q)) : items;
-		return matches.slice(0, MAX_RESULTS);
+		return q ? items.filter((item) => getLabel(item).toLowerCase().includes(q)) : items;
 	});
 
 	function select(item: T) {
@@ -84,7 +83,7 @@
 
 <div class="relative {className}">
 	<div
-		class="flex h-8 items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 {disabled
+		class="flex h-8 items-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-2 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 {disabled
 			? 'opacity-40'
 			: ''}"
 	>
@@ -94,7 +93,7 @@
 		<input
 			bind:this={inputEl}
 			type="text"
-			class="w-full border-none p-0 text-sm focus:ring-0"
+			class="w-full border-none bg-transparent p-0 text-sm text-gray-100 placeholder:text-gray-500 focus:ring-0"
 			placeholder={selected && !open ? getLabel(selected) : placeholder}
 			bind:value={query}
 			{disabled}
@@ -105,7 +104,7 @@
 		{#if selected && clearable}
 			<button
 				type="button"
-				class="shrink-0 text-gray-400 hover:text-gray-600"
+				class="shrink-0 text-gray-500 hover:text-gray-300"
 				onclick={clear}
 				{disabled}
 				aria-label="Clear selection"
@@ -117,15 +116,15 @@
 
 	{#if open && results.length > 0}
 		<ul
-			class="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+			class="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-gray-700 bg-gray-800 py-1 shadow-lg"
 		>
 			{#each results as item, i (getLabel(item))}
 				<li>
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-indigo-50 {i ===
+						class="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-gray-100 hover:bg-indigo-500/20 {i ===
 						highlighted
-							? 'bg-indigo-50'
+							? 'bg-indigo-500/20'
 							: ''}"
 						onmousedown={(e) => e.preventDefault()}
 						onclick={() => select(item)}

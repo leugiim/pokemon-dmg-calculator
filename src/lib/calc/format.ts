@@ -84,3 +84,24 @@ export function calcChampionsStat(
 	}
 	return Math.floor((raw + 5 + sp) * natureModifier(nature, stat));
 }
+
+/**
+ * The nature's ±10% is a multiply-then-floor, so an SP point doesn't
+ * always add a flat +1 to the final stat: on the boosted stat it
+ * occasionally adds +2 instead (the 10% overflow finally tips the
+ * floor over an extra integer), and on the hindered stat it
+ * occasionally adds +0 (rounds back down to where it started) — both
+ * roughly every 10 points. Returns the SP values (1..`MAX_SP_PER_STAT`)
+ * right after one of those breakpoints — empty for a neutral nature or
+ * a stat it doesn't touch (including HP, which nature never affects).
+ */
+export function statPointBreakpoints(base: number, stat: StatID, nature: NatureInfo): number[] {
+	if (nature.plus === nature.minus || (stat !== nature.plus && stat !== nature.minus)) return [];
+	const points: number[] = [];
+	for (let sp = 1; sp <= MAX_SP_PER_STAT; sp++) {
+		const delta =
+			calcChampionsStat(base, stat, sp, nature) - calcChampionsStat(base, stat, sp - 1, nature);
+		if (delta !== 1) points.push(sp);
+	}
+	return points;
+}
