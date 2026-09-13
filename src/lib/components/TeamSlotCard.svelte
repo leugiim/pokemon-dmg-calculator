@@ -4,13 +4,13 @@
 	import SpeciesSprite from './SpeciesSprite.svelte';
 	import TypeBadge from './TypeBadge.svelte';
 
-	let { slot, label }: { slot: TeamSlot; label: string } = $props();
+	let { slot, label }: { slot: TeamSlot; label: number } = $props();
 </script>
 
 <div
 	class="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
 >
-	<span class="text-xs font-medium text-gray-400 uppercase">{label}</span>
+	<span class="text-xs font-medium text-gray-400 uppercase">Pokémon {label}</span>
 
 	<div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-50">
 		{#if slot.species}

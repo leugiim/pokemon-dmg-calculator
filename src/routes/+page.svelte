@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { attackers, defenders } from '$lib/stores/team.svelte';
+	import { teamA, teamB } from '$lib/stores/team.svelte';
 	import TeamSlotCard from '$lib/components/TeamSlotCard.svelte';
 </script>
 
@@ -9,19 +9,25 @@
 		<p class="text-sm text-gray-500">2v2 VGC damage calculator</p>
 	</header>
 
-	<div class="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
-		<section class="grid grid-cols-2 gap-4">
-			{#each attackers as slot, i (i)}
-				<TeamSlotCard {slot} label="Attacker {i + 1}" />
-			{/each}
+	<div class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[1fr_auto_1fr]">
+		<section class="flex flex-col gap-3">
+			<h2 class="text-center text-sm font-semibold text-gray-400">Team A</h2>
+			<div class="grid grid-cols-2 gap-4">
+				{#each teamA as slot, i (i)}
+					<TeamSlotCard {slot} label={i + 1} />
+				{/each}
+			</div>
 		</section>
 
-		<span class="justify-self-center text-sm font-bold text-gray-300">VS</span>
+		<span class="justify-self-center text-sm font-bold text-gray-300 sm:mt-8">VS</span>
 
-		<section class="grid grid-cols-2 gap-4">
-			{#each defenders as slot, i (i)}
-				<TeamSlotCard {slot} label="Defender {i + 1}" />
-			{/each}
+		<section class="flex flex-col gap-3">
+			<h2 class="text-center text-sm font-semibold text-gray-400">Team B</h2>
+			<div class="grid grid-cols-2 gap-4">
+				{#each teamB as slot, i (i)}
+					<TeamSlotCard {slot} label={i + 1} />
+				{/each}
+			</div>
 		</section>
 	</div>
 </div>
