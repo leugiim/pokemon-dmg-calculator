@@ -32,13 +32,11 @@ function familyOf(species: SpeciesItem): string {
  */
 export type Side = 'teamA' | 'teamB';
 
-/**
- * A single team slot. Ability is still missing — will be added once
- * the rest of the calculation side of the app needs it.
- */
+/** A single team slot. */
 export class TeamSlot {
 	#species = $state<SpeciesItem | null>(null);
 	item = $state<HeldItem | null>(null);
+	ability = $state<string | null>(null);
 	nature = $state<NatureInfo>(NEUTRAL_NATURE);
 	statPoints = $state<StatPoints>(emptyStatPoints());
 	moves = $state<MoveSlots>(emptyMoves());
@@ -53,12 +51,17 @@ export class TeamSlot {
 	 * formes within the same family (e.g. into or out of a Mega
 	 * Evolution) only changes what its base stats (and the sprite/types
 	 * derived from them) are — the rest of the build carries over.
+	 *
+	 * Ability is the one exception: it's voided on *any* species change,
+	 * same family or not, since a different forme can have a wholly
+	 * different valid ability (a Mega Evolution almost always does).
 	 */
 	set species(value: SpeciesItem | null) {
 		if (value === this.#species) return;
 		const sameFamily =
 			value !== null && this.#species !== null && familyOf(value) === familyOf(this.#species);
 		this.#species = value;
+		this.ability = null;
 		if (!sameFamily) {
 			this.item = null;
 			this.nature = NEUTRAL_NATURE;

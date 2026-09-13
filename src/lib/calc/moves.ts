@@ -11,3 +11,6 @@ export const allMoves = [...gen.moves]
 	.sort((a, b) => a.name.localeCompare(b.name));
 
 export type MoveItem = (typeof allMoves)[number];
+
+/** "Physical" | "Special" | "Status" — not itself exported by `@smogon/calc`. */
+export type MoveCategory = NonNullable<MoveItem['category']>;
