@@ -3,7 +3,7 @@
 	import TeamSlotCard from '$lib/components/TeamSlotCard.svelte';
 </script>
 
-<div class="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-4 py-8">
+<div class="flex min-h-screen w-full flex-col gap-8 px-4 py-8 sm:px-8 lg:px-16">
 	<header class="text-center">
 		<h1 class="text-2xl font-bold text-gray-900">Pokemon DMG Calculator</h1>
 		<p class="text-sm text-gray-500">2v2 VGC damage calculator</p>
