@@ -46,10 +46,13 @@
 		<div class="flex items-center gap-2">
 			<span class="w-9 shrink-0 text-[11px] text-gray-500">
 				{STAT_LABELS[stat]}{#if !isNeutral && stat === nature.plus}<span
-						class="font-semibold text-red-500">+</span
-					>{:else if !isNeutral && stat === nature.minus}<span class="font-semibold text-blue-500"
+						class="font-semibold text-green-500">+</span
+					>{:else if !isNeutral && stat === nature.minus}<span class="font-semibold text-red-500"
 						>−</span
 					>{/if}
+			</span>
+			<span class="w-6 shrink-0 text-right text-[11px] text-gray-400">
+				{species ? species.baseStats[stat] : '–'}
 			</span>
 			<input
 				type="range"
@@ -75,3 +78,13 @@
 		</div>
 	{/each}
 </div>
+
+<style>
+	/* Browsers only show the spin buttons on hover/focus by default —
+	   keep them visible all the time, since this is the primary way to
+	   nudge a stat point value. */
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		opacity: 1;
+	}
+</style>
