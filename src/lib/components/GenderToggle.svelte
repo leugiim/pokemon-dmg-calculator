@@ -11,7 +11,7 @@
 </script>
 
 {#if pair}
-	<div class="flex items-center gap-1">
+	<div class="flex flex-col items-center gap-1">
 		<button
 			type="button"
 			{disabled}
@@ -19,8 +19,8 @@
 			aria-label="Male"
 			aria-pressed={!isFemale}
 			class="rounded-full px-1.5 text-sm leading-6 disabled:opacity-30 {!isFemale
-				? 'bg-blue-100 text-blue-600'
-				: 'text-gray-300'}"
+				? 'bg-blue-500/20 text-blue-400'
+				: 'text-gray-500'}"
 		>
 			♂
 		</button>
@@ -31,8 +31,8 @@
 			aria-label="Female"
 			aria-pressed={isFemale}
 			class="rounded-full px-1.5 text-sm leading-6 disabled:opacity-30 {isFemale
-				? 'bg-pink-100 text-pink-600'
-				: 'text-gray-300'}"
+				? 'bg-pink-500/20 text-pink-400'
+				: 'text-gray-500'}"
 		>
 			♀
 		</button>

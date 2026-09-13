@@ -31,7 +31,7 @@
 	     have a species but genuinely couldn't find art for it (an amber
 	     "something's wrong" look, not the neutral "nothing here yet" gray). -->
 	<div
-		class="flex shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-50 font-bold text-amber-500"
+		class="flex shrink-0 items-center justify-center rounded-full border border-amber-600 bg-amber-950 font-bold text-amber-400"
 		style="width: {size}px; height: {size}px; font-size: {Math.round(size * 0.42)}px;"
 		title="No sprite found for {species.name}"
 	>

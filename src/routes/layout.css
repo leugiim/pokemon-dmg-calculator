@@ -11,3 +11,11 @@
 html {
 	scrollbar-gutter: stable;
 }
+
+/* Dark theme, app-wide — set here too so an overscroll bounce or a
+   shorter-than-viewport page never flashes the browser's white default. */
+html,
+body {
+	background-color: #030712; /* gray-950 */
+	color-scheme: dark;
+}
