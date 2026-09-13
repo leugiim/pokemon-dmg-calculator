@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allSpecies } from './generation';
+import { allSpecies } from '$lib/calc/generation';
 
 function hasSpecies(name: string): boolean {
 	return allSpecies.some((s) => s.name === name);

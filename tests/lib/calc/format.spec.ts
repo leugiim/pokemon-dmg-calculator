@@ -5,7 +5,7 @@ import {
 	emptyStatPoints,
 	MAX_SP_TOTAL,
 	MAX_SP_PER_STAT
-} from './format';
+} from '$lib/calc/format';
 
 describe('calcChampionsStat', () => {
 	it('matches the standard level 50 / 31 IV / 0 SP baseline for HP', () => {
