@@ -28,10 +28,13 @@
 	let highlighted = $state(0);
 	let inputEl: HTMLInputElement | undefined;
 
+	/** Cap the rendered list so a broad (or empty) query doesn't dump the whole dataset into the DOM. */
+	const MAX_RESULTS = 100;
+
 	const results = $derived.by(() => {
 		const q = query.trim().toLowerCase();
 		const matches = q ? items.filter((item) => getLabel(item).toLowerCase().includes(q)) : items;
-		return matches.slice(0, 30);
+		return matches.slice(0, MAX_RESULTS);
 	});
 
 	function select(item: T) {
