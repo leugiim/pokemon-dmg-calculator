@@ -75,10 +75,17 @@ function createSide(): [TeamSlot, TeamSlot] {
 	return [new TeamSlot(), new TeamSlot()];
 }
 
+// $state, not a plain array: TeamSlotCard binds into `teamA[i]` /
+// `teamB[i]` (see +page.svelte), and Svelte's binding validator requires
+// the container itself to be reactive for that — each TeamSlot's own
+// fields being $state isn't enough, since a slot is never actually
+// replaced wholesale, only the array's "this index is bindable" status
+// is what's being checked.
+
 /** The 2 Pokémon on team A. */
-export const teamA = createSide();
+export const teamA = $state(createSide());
 
 /** The 2 Pokémon on team B. */
-export const teamB = createSide();
+export const teamB = $state(createSide());
 
 export const sides: Record<TeamId, [TeamSlot, TeamSlot]> = { teamA, teamB };

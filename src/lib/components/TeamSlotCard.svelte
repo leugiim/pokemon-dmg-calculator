@@ -11,7 +11,11 @@
 	import StatPointBars from './StatPointBars.svelte';
 	import TypeBadge from './TypeBadge.svelte';
 
-	let { slot, ally }: { slot: TeamSlot; ally: TeamSlot } = $props();
+	// slot is $bindable: this component two-way-binds into its properties
+	// (slot.species, slot.nature, slot.statPoints, ...) via child bind:
+	// directives, and Svelte's ownership tracking requires that chain to be
+	// declared explicitly all the way up, or it warns ownership_invalid_binding.
+	let { slot = $bindable(), ally }: { slot: TeamSlot; ally: TeamSlot } = $props();
 
 	const disabled = $derived(!slot.species);
 </script>
