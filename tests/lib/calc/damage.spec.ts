@@ -1,0 +1,228 @@
+import { describe, expect, it } from 'vitest';
+import { calcStat } from '@smogon/calc';
+import { GEN_NUM, allSpecies } from '$lib/calc/generation';
+import { allNatures, calcChampionsStat, STAT_ORDER, type NatureName } from '$lib/calc/format';
+import { allItems } from '$lib/calc/items';
+import { allMoves } from '$lib/calc/moves';
+import { TeamSlot } from '$lib/stores/team.svelte';
+import { computeDamage, toSmogonPokemon } from '$lib/calc/damage';
+
+function nature(name: NatureName) {
+	return allNatures.find((n) => n.name === name)!;
+}
+
+function species(name: string) {
+	return allSpecies.find((s) => s.name === name)!;
+}
+
+function move(name: string) {
+	return allMoves.find((m) => m.name === name)!;
+}
+
+function item(name: string) {
+	return allItems.find((i) => i.name === name)!;
+}
+
+/** A fully-built team slot, ready to feed into `@smogon/calc`. */
+function buildSlot({
+	speciesName,
+	ability,
+	itemName,
+	natureName,
+	statPoints,
+	moveNames
+}: {
+	speciesName: string;
+	ability: string;
+	itemName?: string;
+	natureName: NatureName;
+	statPoints: Partial<Record<(typeof STAT_ORDER)[number], number>>;
+	moveNames: string[];
+}): TeamSlot {
+	const slot = new TeamSlot();
+	slot.species = species(speciesName);
+	slot.ability = ability;
+	if (itemName) slot.item = item(itemName);
+	slot.nature = nature(natureName);
+	slot.statPoints = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0, ...statPoints };
+	slot.moves = [moveNames[0] ? move(moveNames[0]) : null, null, null, null];
+	return slot;
+}
+
+describe('toSmogonPokemon', () => {
+	it('throws when the slot has no species selected', () => {
+		expect(() => toSmogonPokemon(new TeamSlot())).toThrow();
+	});
+
+	it('carries over species, ability, item, nature and level onto the built Pokemon', () => {
+		const slot = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			itemName: 'Life Orb',
+			natureName: 'Jolly',
+			statPoints: { atk: 32, spe: 32 },
+			moveNames: ['Earthquake']
+		});
+
+		const mon = toSmogonPokemon(slot);
+
+		expect(mon.name).toBe('Garchomp');
+		expect(mon.ability).toBe('Rough Skin');
+		expect(mon.item).toBe('Life Orb');
+		expect(mon.nature).toBe('Jolly');
+		expect(mon.level).toBe(50);
+	});
+
+	it("maps every Stat Point value 0..32 onto exactly the stat Champions' own formula gives, for every stat and every nature relationship to it", () => {
+		// Boosted (Modest -> SpA), hindered (Modest -> Atk), and untouched
+		// (Modest -> Def) all need to round-trip identically.
+		for (const natureName of ['Modest'] as NatureName[]) {
+			for (const stat of STAT_ORDER) {
+				for (let sp = 0; sp <= 32; sp++) {
+					const slot = buildSlot({
+						speciesName: 'Garchomp',
+						ability: 'Rough Skin',
+						natureName,
+						statPoints: { [stat]: sp },
+						moveNames: ['Earthquake']
+					});
+
+					const mon = toSmogonPokemon(slot);
+
+					expect(mon.rawStats[stat]).toBe(
+						calcChampionsStat(slot.species!.baseStats[stat], stat, sp, slot.nature)
+					);
+				}
+			}
+		}
+	});
+
+	it("agrees with @smogon/calc's own stat calculator at 0 SP — the one point where both formulas must coincide", () => {
+		// At SP=0 there's no floor(EV/4) step to diverge on, so Champions'
+		// formula and @smogon/calc's own EV-based one must land on the same
+		// number. This is the closest thing to an external oracle we have
+		// for the mapping without a published worked example to check against.
+		const slot = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Earthquake']
+		});
+
+		const mon = toSmogonPokemon(slot);
+
+		for (const stat of STAT_ORDER) {
+			const expected = calcStat(GEN_NUM, stat, slot.species!.baseStats[stat], 31, 0, 50, 'Jolly');
+			expect(mon.rawStats[stat]).toBe(expected);
+		}
+	});
+
+	it("survives the internal clone() that @smogon/calc's calculate() performs on its inputs", () => {
+		// A naive implementation that overwrites `rawStats` after
+		// construction loses that override here: `clone()` rebuilds the
+		// Pokemon from `ivs`/`evs`/`nature`, not from `rawStats`.
+		const slot = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Adamant',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+
+		const mon = toSmogonPokemon(slot);
+		const cloned = mon.clone();
+
+		expect(cloned.rawStats.atk).toBe(mon.rawStats.atk);
+		expect(cloned.rawStats.atk).toBe(
+			calcChampionsStat(slot.species!.baseStats.atk, 'atk', 20, slot.nature)
+		);
+	});
+});
+
+describe('computeDamage', () => {
+	it('always calculates on a Doubles field', () => {
+		const attacker = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+		expect(result.field.gameType).toBe('Doubles');
+	});
+
+	it('matches a hand-computed %HP range and KO chance for a known, modifier-free build', () => {
+		// Slaking (Normal) using the Psychic-type Zen Headbutt against
+		// Snorlax (Normal): no STAB, neutral type effectiveness, no items,
+		// no boosting abilities, neutral natures on the stats involved —
+		// isolates the Stat Points -> damage path from every other modifier.
+		//
+		// Atk: base 160, 20 SP, neutral nature -> raw = floor((320+31)*50/100) = 175;
+		//      stat = floor(175+5+20) = 200
+		// Def: base 65, 15 SP, neutral nature -> raw = floor((130+31)*50/100) = 80;
+		//      stat = floor(80+5+15) = 100
+		// HP:  base 160, 0 SP -> raw = floor((320+31)*50/100) = 175; stat = 175+60 = 235
+		//
+		// Damage (gen 9, no crit, BP 80, level 50):
+		//   floor(floor(2*50/5+2) * 80 * 200 / 100 / 50) + 2
+		//     = floor(floor(22*80*200/100)/50) + 2 = floor(3520/50) + 2 = 70 + 2 = 72
+		//   min = floor(72*0.85) = 61, max = floor(72*1.00) = 72
+		//   %HP: floor(61*1000/235)/10 = 25.9, floor(72*1000/235)/10 = 30.6
+		const attacker = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const { result, percentRange, koChance } = computeDamage(
+			attacker,
+			attacker.moves[0]!,
+			defender
+		);
+
+		expect(result.range()).toEqual([61, 72]);
+		expect(percentRange).toBe('25.9 - 30.6');
+		expect(koChance.length).toBeGreaterThan(0);
+	});
+
+	it('does not throw for a Status move — @smogon/calc treats a 0 top damage roll as an error by default', () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Swords Dance']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: {},
+			moveNames: ['Tackle']
+		});
+
+		expect(() => computeDamage(attacker, attacker.moves[0]!, defender)).not.toThrow();
+		const { koChance } = computeDamage(attacker, attacker.moves[0]!, defender);
+		expect(koChance).toBe('');
+	});
+});
