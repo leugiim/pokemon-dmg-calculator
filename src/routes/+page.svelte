@@ -19,7 +19,7 @@
 	<div class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[1fr_auto_1fr]">
 		<section class="flex flex-col gap-4">
 			{#each teamA as slot, i (i)}
-				<TeamSlotCard {slot} />
+				<TeamSlotCard {slot} ally={teamA[i === 0 ? 1 : 0]} />
 			{/each}
 		</section>
 
@@ -27,7 +27,7 @@
 
 		<section class="flex flex-col gap-4">
 			{#each teamB as slot, i (i)}
-				<TeamSlotCard {slot} />
+				<TeamSlotCard {slot} ally={teamB[i === 0 ? 1 : 0]} />
 			{/each}
 		</section>
 	</div>

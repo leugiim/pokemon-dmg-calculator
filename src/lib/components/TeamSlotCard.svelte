@@ -11,7 +11,7 @@
 	import StatPointBars from './StatPointBars.svelte';
 	import TypeBadge from './TypeBadge.svelte';
 
-	let { slot }: { slot: TeamSlot } = $props();
+	let { slot, ally }: { slot: TeamSlot; ally: TeamSlot } = $props();
 
 	const disabled = $derived(!slot.species);
 </script>
@@ -65,9 +65,10 @@
 			<span class="w-20 shrink-0 text-center">Type</span>
 			<span class="w-8 shrink-0 text-center">Cat</span>
 			<span class="w-8 shrink-0 text-right">Power</span>
+			<span class="w-14 shrink-0"></span>
 		</div>
 		{#each [0, 1, 2, 3] as i (i)}
-			<MoveSlot bind:selected={slot.moves[i]} {disabled} />
+			<MoveSlot bind:selected={slot.moves[i]} {disabled} attacker={slot} {ally} />
 		{/each}
 	</div>
 </div>
