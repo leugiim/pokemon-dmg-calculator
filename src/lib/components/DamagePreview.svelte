@@ -27,9 +27,17 @@
 		return options;
 	});
 
-	let attacker = $state<SlotOption | null>(null);
-	let selectedMove = $state<MoveItem | null>(null);
-	let target = $state<SlotOption | null>(null);
+	// $state.raw, not $state: these are only ever reassigned wholesale
+	// (SearchableCombobox's bind:selected does `selected = item`, never an
+	// in-place mutation), and the effects below compare them by reference
+	// against freshly-derived plain objects. $state would wrap each
+	// assignment in a Proxy, so a later comparison against the same
+	// underlying (unproxied) object from slotOptions/targetOptions would
+	// spuriously read as different — Svelte's state_proxy_equality_mismatch
+	// warning — and the effect would reassign forever trying to "fix" it.
+	let attacker = $state.raw<SlotOption | null>(null);
+	let selectedMove = $state.raw<MoveItem | null>(null);
+	let target = $state.raw<SlotOption | null>(null);
 
 	// Deduped: nothing stops the same move from being assigned to two of a
 	// Pokémon's four move slots, and SearchableCombobox keys its rows by
