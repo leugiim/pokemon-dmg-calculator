@@ -48,3 +48,22 @@ const ALLY_ONLY_TARGET_MOVES = new Set([
 export function isAllyOnlyTarget(move: MoveItem): boolean {
 	return ALLY_ONLY_TARGET_MOVES.has(move.name);
 }
+
+/**
+ * True for a move with an actual damage formula — every category other
+ * than Status, per `CONTEXT.md`'s Damage Matrix cell convention: a cell is
+ * `—` only for a move with no direct damage component at all (base power
+ * 0 and not a fixed-damage move like Seismic Toss). `@smogon/calc`'s own
+ * move data gives every fixed/variable-damage move (Seismic Toss, Night
+ * Shade, Dragon Rage, Sonic Boom, Super Fang, Final Gambit, Counter,
+ * OHKO moves, ...) a `basePower` of 0 but a real `Physical`/`Special`
+ * category — the same as every weight-/HP-based move (Low Kick, Heavy
+ * Slam, ...) whose effective base power is computed elsewhere, never a
+ * `Status` move — so checking category alone (rather than hand-curating a
+ * move list, the way `isAllyOnlyTarget` has to) exactly separates the two,
+ * confirmed in `moves.spec.ts` against every 0-base-power move this
+ * generation has.
+ */
+export function hasDamageComponent(move: MoveItem): boolean {
+	return move.category !== 'Status';
+}

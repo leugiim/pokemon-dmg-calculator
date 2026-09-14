@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { teamA, teamB, sides } from '$lib/stores/team.svelte';
-	import DamagePreview from '$lib/components/DamagePreview.svelte';
+	import DamageMatrix from '$lib/components/DamageMatrix.svelte';
 	import TeamSlotCard from '$lib/components/TeamSlotCard.svelte';
 </script>
 
@@ -32,5 +32,5 @@
 		</section>
 	</div>
 
-	<DamagePreview {sides} />
+	<DamageMatrix {sides} />
 </div>
