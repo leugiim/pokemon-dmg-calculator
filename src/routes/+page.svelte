@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { teamA, teamB } from '$lib/stores/team.svelte';
+	import { teamA, teamB, sides } from '$lib/stores/team.svelte';
+	import DamagePreview from '$lib/components/DamagePreview.svelte';
 	import TeamSlotCard from '$lib/components/TeamSlotCard.svelte';
 </script>
 
@@ -30,4 +31,6 @@
 			{/each}
 		</section>
 	</div>
+
+	<DamagePreview {sides} />
 </div>
