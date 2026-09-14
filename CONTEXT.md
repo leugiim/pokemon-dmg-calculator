@@ -18,13 +18,19 @@ One of the two positions within a `TeamId`'s roster (index 0 or 1), each holding
 The Pokémon occupying the other slot of the same side as a given attacker or defender. Every damage calculation involves exactly one ally per side (fixed 2vs2, no bench).
 
 **Damage Matrix**:
-The core result of a matchup: the 8 attacker→target damage calculations formed by each side's 2 Pokémon attacking each of the opposing side's 2 Pokémon, computed in both directions (A→B and B→A). Excludes friendly fire.
-_Avoid_: 2x2 matrix (ambiguous about whether it includes the ally)
+The core result of a matchup: for every attacker (the 4 Pokémon across both sides) and every one of its up to 4 moves, the damage against each of the 2 opposing Pokémon, computed in both directions (A→B and B→A). Excludes friendly fire, except that an `allAdjacent` move's simultaneous ally damage is shown inline alongside its matrix row (see Friendly fire). Every move row is shown, including status moves (marked `—`, see below); no targeting is redirected (Follow Me, Rage Powder, Storm Drain, Lightning Rod are not modeled — the reader picks the target).
+_Avoid_: 2x2 matrix (undersells that all 4 moves are shown, and ambiguous about whether it includes the ally)
+
+A cell shows a %HP range (min-max) plus a KO chance annotation when relevant, matching the convention of Pokémon Showdown-style calculators; not a single number. A cell is `—` only for moves with no direct damage component at all (base power 0 and not a fixed-damage move like Seismic Toss) — any move with a damage formula always shows its computed number, even if that number is 0 (e.g. a Normal move into a Ghost-type). No critical hit is assumed by default; "assume crit" is a separate opt-in recalculation, not a second number shown by default. Multi-hit moves (Bullet Seed, Icicle Spear, ...) default to 3 hits (the expected average, matching `@smogon/calc`'s own default, overridden automatically when an ability fixes the count, e.g. Skill Link → 5), with a manual selector to override the hit count per move.
 
 **Friendly fire**:
-Damage calculated against a Pokémon's own ally rather than an opponent, shown separately from the Damage Matrix rather than folded into it.
+Damage calculated against a Pokémon's own ally rather than an opponent.
+
+- Moves that can **only** target the ally (`adjacentAlly`, `allies`) are shown separately from the Damage Matrix, on demand.
+- Moves that hit the ally **simultaneously** with opponents in real play (`allAdjacent`, e.g. Earthquake) show that ally damage inline in the Damage Matrix itself — it isn't optional, since that's what using the move actually does.
 
 **Ally support**:
 Modifiers on a `Side` that originate from the acting Pokémon's ally rather than itself (Friend Guard, Battery, Power Spot, Steely Spirit, Helping Hand, Tailwind).
 
 - **Static ally support**: derived automatically from the ally's `ability` field (Friend Guard, Battery, Power Spot, Steely Spirit) — on by default when the ally has that ability, with a manual override toggle.
+- **Turn-dependent ally support**: Helping Hand, Tailwind — no static data source (they depend on an action taken that turn, not a fixed ability/item), so manual toggle only, off by default.
