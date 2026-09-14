@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allMoves, isAllyOnlyTarget } from '$lib/calc/moves';
+import { allMoves, hasDamageComponent, isAllyOnlyTarget } from '$lib/calc/moves';
 
 function move(name: string) {
 	const m = allMoves.find((m) => m.name === name);
@@ -41,5 +41,91 @@ describe('isAllyOnlyTarget', () => {
 		// allAdjacent moves (Earthquake, ...) show their ally damage inline
 		// in the main Damage Matrix instead (ADR-0001), not here.
 		expect(isAllyOnlyTarget(move('Earthquake'))).toBe(false);
+	});
+});
+
+/**
+ * Every basePower-0, non-Status move this generation's move data has —
+ * hand-enumerated from `@smogon/calc`'s own gen 9 data, an oracle
+ * independent of `hasDamageComponent`'s own category check (unlike
+ * filtering `allMoves` by `category !== 'Status'` inline, which would
+ * just restate the implementation under test). Includes both the
+ * fixed-damage moves `CONTEXT.md` itself names as examples (Seismic
+ * Toss, Night Shade, Dragon Rage, Sonic Boom, Super Fang, Final Gambit)
+ * and every counter-attack, OHKO move, and weight-/HP-/recoil-based move
+ * whose effective base power the engine computes elsewhere.
+ */
+const ZERO_BASE_POWER_DAMAGE_MOVES = [
+	'Seismic Toss',
+	'Night Shade',
+	'Dragon Rage',
+	'Sonic Boom',
+	'Super Fang',
+	'Final Gambit',
+	'Bide',
+	'Counter',
+	'Fissure',
+	'Guillotine',
+	'Horn Drill',
+	'Psywave',
+	'Low Kick',
+	'Beat Up',
+	'Flail',
+	'Mirror Coat',
+	'Present',
+	'Reversal',
+	'Magnitude',
+	'Frustration',
+	'Return',
+	'Spit Up',
+	'Endeavor',
+	'Sheer Cold',
+	'Crush Grip',
+	'Fling',
+	'Metal Burst',
+	'Natural Gift',
+	'Wring Out',
+	'Gyro Ball',
+	'Grass Knot',
+	'Punishment',
+	'Trump Card',
+	'Electro Ball',
+	'Heat Crash',
+	'Heavy Slam',
+	'Guardian of Alola',
+	"Nature's Madness",
+	'Comeuppance',
+	'Hard Press',
+	'Ruination'
+];
+
+describe('hasDamageComponent', () => {
+	it('is false for a pure status move', () => {
+		expect(hasDamageComponent(move('Swords Dance'))).toBe(false);
+		expect(hasDamageComponent(move('Will-O-Wisp'))).toBe(false);
+	});
+
+	it('is true for an ordinary base-power move', () => {
+		expect(hasDamageComponent(move('Flamethrower'))).toBe(true);
+	});
+
+	it.each(ZERO_BASE_POWER_DAMAGE_MOVES)(
+		'is true for %s, a fixed/variable-damage move whose own basePower is 0',
+		(name) => {
+			const m = move(name);
+			expect(m.basePower).toBe(0);
+			expect(hasDamageComponent(m)).toBe(true);
+		}
+	);
+
+	it("covers every basePower-0, non-Status move this generation's move data has", () => {
+		// Guards the list above against drifting out of date (a new move
+		// added on a future gen bump, say) — every move shaped like the
+		// ones above must actually appear in that list.
+		const covered = new Set(ZERO_BASE_POWER_DAMAGE_MOVES);
+		const uncovered = allMoves.filter(
+			(m) => m.basePower === 0 && m.category !== 'Status' && !covered.has(m.name)
+		);
+		expect(uncovered.map((m) => m.name)).toEqual([]);
 	});
 });
