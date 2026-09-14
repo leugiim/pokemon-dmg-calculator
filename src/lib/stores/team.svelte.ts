@@ -30,7 +30,7 @@ function familyOf(species: SpeciesItem): string {
  * ways (every Pokémon on team A against every Pokémon on team B, and
  * vice versa), so the two sides are just A and B.
  */
-export type Side = 'teamA' | 'teamB';
+export type TeamId = 'teamA' | 'teamB';
 
 /** A single team slot. */
 export class TeamSlot {
@@ -81,4 +81,4 @@ export const teamA = createSide();
 /** The 2 Pokémon on team B. */
 export const teamB = createSide();
 
-export const sides: Record<Side, [TeamSlot, TeamSlot]> = { teamA, teamB };
+export const sides: Record<TeamId, [TeamSlot, TeamSlot]> = { teamA, teamB };
