@@ -2,6 +2,7 @@
 	import type { TeamId, TeamSlot } from '$lib/stores/team.svelte';
 	import type { MoveItem } from '$lib/calc/moves';
 	import { computeDamage, type DamageDisplay } from '$lib/calc/damage';
+	import DamageResult from './DamageResult.svelte';
 	import SearchableCombobox from './SearchableCombobox.svelte';
 
 	let { sides }: { sides: Record<TeamId, [TeamSlot, TeamSlot]> } = $props();
@@ -105,10 +106,7 @@
 
 	{#if damage}
 		<p class="text-center text-lg font-semibold text-gray-100">
-			{damage.percentRange}%
-			{#if damage.koChance}
-				<span class="text-sm font-normal text-gray-400">— {damage.koChance}</span>
-			{/if}
+			<DamageResult {damage} koChanceClass="text-sm font-normal text-gray-400" />
 		</p>
 	{:else}
 		<p class="text-center text-sm text-gray-500">Pick an attacker, a move, and a target.</p>
