@@ -225,4 +225,113 @@ describe('computeDamage', () => {
 		const { koChance } = computeDamage(attacker, attacker.moves[0]!, defender);
 		expect(koChance).toBe('');
 	});
+
+	it('does not assume a crit by default — "assume crit" is an opt-in recalculation (#14)', () => {
+		const attacker = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+		expect(result.move.isCrit).toBe(false);
+	});
+
+	it('recalculates assuming a critical hit when isCrit is passed (#14)', () => {
+		const attacker = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const normal = computeDamage(attacker, attacker.moves[0]!, defender);
+		const crit = computeDamage(attacker, attacker.moves[0]!, defender, { isCrit: true });
+
+		expect(crit.result.move.isCrit).toBe(true);
+		// A crit's top roll must exceed the non-crit range's top roll — Snorlax
+		// has no crit-affecting ability/item here, so this can't tie.
+		expect(crit.result.range()[1]).toBeGreaterThan(normal.result.range()[1]);
+	});
+
+	it("defaults a multi-hit move to 3 hits, matching @smogon/calc's own default (#15)", () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Bullet Seed']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: {},
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+		expect(result.move.hits).toBe(3);
+	});
+
+	it("respects an ability that fixes a multi-hit move's hit count (Skill Link) automatically (#15)", () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Skill Link',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Bullet Seed']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: {},
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+		expect(result.move.hits).toBe(5);
+	});
+
+	it('lets a manual hits override take priority for a multi-hit move (#15)', () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Bullet Seed']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: {},
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender, { hits: 5 });
+
+		expect(result.move.hits).toBe(5);
+	});
 });

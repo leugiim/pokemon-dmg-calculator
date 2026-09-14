@@ -72,7 +72,7 @@
 			<span class="w-14 shrink-0"></span>
 		</div>
 		{#each [0, 1, 2, 3] as i (i)}
-			<MoveSlot bind:selected={slot.moves[i]} {disabled} attacker={slot} {ally} />
+			<MoveSlot bind:selected={slot.moves[i]} {disabled} attacker={slot} {ally} moveIndex={i} />
 		{/each}
 	</div>
 </div>

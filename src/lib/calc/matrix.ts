@@ -1,6 +1,6 @@
 import type { TeamId, TeamSlot } from '../stores/team.svelte';
-import { hasDamageComponent, isAllyOnlyTarget, type MoveItem } from './moves';
-import { computeDamage, type DamageDisplay } from './damage';
+import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveItem } from './moves';
+import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
 
 /** One damage number in a `DamageMatrixRow`, against one opposing Pokemon. */
 export interface DamageMatrixCell {
@@ -12,7 +12,28 @@ export interface DamageMatrixCell {
 /** One of an attacker's filled move slots, computed against every current opponent. */
 export interface DamageMatrixRow {
 	move: MoveItem;
+	/**
+	 * This move's index within `attacker.moves` (0-3) — lets a caller read
+	 * or bind back onto that exact move slot's own `TeamSlot.moveOptions`
+	 * entry (#14/#15), since ally-only moves are filtered out of `rows` and
+	 * so `rows`' own array index can't be used for that.
+	 */
+	moveIndex: number;
 	cells: DamageMatrixCell[];
+	/**
+	 * True for a move whose real target is `allAdjacent` (Earthquake, ...)
+	 * — the one classification a caller needs to decide whether this row
+	 * should render a "vs ally" cell at all (`allyDamage`'s own null
+	 * doesn't distinguish "not applicable" from "ally has no species
+	 * picked yet"). See ADR-0001, #12.
+	 */
+	isAllAdjacentMove: boolean;
+	/**
+	 * This move's damage against the attacker's own ally — populated only
+	 * when `isAllAdjacentMove` is true and the ally has a species picked;
+	 * `null` otherwise.
+	 */
+	allyDamage: DamageDisplay | null;
 }
 
 /** One attacker's full move set against its side of the matchup. */
@@ -24,6 +45,39 @@ export interface DamageMatrixAttacker {
 }
 
 const OTHER_TEAM: Record<TeamId, TeamId> = { teamA: 'teamB', teamB: 'teamA' };
+
+/** One attacker/ally pairing from a 2-slot side — the other slot is always the ally. */
+function pairings(slots: [TeamSlot, TeamSlot]): [attacker: TeamSlot, ally: TeamSlot][] {
+	return slots.map((attacker, i) => [attacker, slots[1 - i]]);
+}
+
+/** One row per filled, non-ally-only move slot, keeping its original slot index. */
+function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): DamageMatrixRow[] {
+	return attacker.moves.flatMap((move, moveIndex) => {
+		if (move === null || isAllyOnlyTarget(move)) return [];
+
+		const { isCrit, hits } = attacker.moveOptions[moveIndex];
+		const options: DamageOptions = { isCrit, hits: hits ?? undefined };
+		const damaging = hasDamageComponent(move);
+		const isAllAdjacentMove = isAllAdjacentTarget(move);
+
+		return [
+			{
+				move,
+				moveIndex,
+				cells: opponents.map((target) => ({
+					target,
+					damage: damaging ? computeDamage(attacker, move, target, options) : null
+				})),
+				isAllAdjacentMove,
+				allyDamage:
+					damaging && isAllAdjacentMove && ally.species
+						? computeDamage(attacker, move, ally, options)
+						: null
+			}
+		];
+	});
+}
 
 /**
  * Builds the full Damage Matrix (`CONTEXT.md`): every one of the 4
@@ -49,20 +103,10 @@ export function buildDamageMatrix(
 	for (const teamId of ['teamA', 'teamB'] as TeamId[]) {
 		const opponents = sides[OTHER_TEAM[teamId]].filter((slot) => slot.species);
 
-		for (const attacker of sides[teamId]) {
+		for (const [attacker, ally] of pairings(sides[teamId])) {
 			if (!attacker.species) continue;
 
-			const rows: DamageMatrixRow[] = attacker.moves
-				.filter((move): move is MoveItem => move !== null && !isAllyOnlyTarget(move))
-				.map((move) => ({
-					move,
-					cells: opponents.map((target) => ({
-						target,
-						damage: hasDamageComponent(move) ? computeDamage(attacker, move, target) : null
-					}))
-				}));
-
-			attackers.push({ attacker, opponents, rows });
+			attackers.push({ attacker, opponents, rows: buildRows(attacker, ally, opponents) });
 		}
 	}
 

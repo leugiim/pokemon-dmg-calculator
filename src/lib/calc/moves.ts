@@ -50,6 +50,58 @@ export function isAllyOnlyTarget(move: MoveItem): boolean {
 }
 
 /**
+ * True for a move whose real target is `allAdjacent` (Earthquake,
+ * Discharge, ...) — it hits the user's own ally at the same time as both
+ * opponents, unconditionally, whenever it's used. Unlike `isAllyOnlyTarget`,
+ * `@smogon/calc`'s own move data does populate `target` with `allAdjacent`
+ * (it's one of the two values, alongside `allAdjacentFoes`, its Doubles
+ * spread-damage modifier cares about — see `damage.ts`), so this can check
+ * it directly instead of hand-curating a list.
+ *
+ * Its ally damage is shown inline in the Damage Matrix row instead of the
+ * on-demand friendly-fire view `isAllyOnlyTarget` moves get (ADR-0001, #12).
+ * `allAdjacentFoes` moves (Rock Slide) are deliberately excluded — they
+ * never hit the ally at all.
+ */
+export function isAllAdjacentTarget(move: MoveItem): boolean {
+	return move.target === 'allAdjacent';
+}
+
+/** The hit-count range `multiHitRange` reports for a multi-hit move. */
+export interface MultiHitRange {
+	min: number;
+	max: number;
+}
+
+/**
+ * The range of hit counts the user can manually pick between for a
+ * multi-hit move, or `null` for a move that isn't multi-hit at all, or
+ * whose hit count `@smogon/calc` treats as entirely fixed regardless of any
+ * `hits` override passed to it (see its `Move` constructor) — Double Hit,
+ * Bonemerang, Double Kick, Twineedle, Surging Strikes, ... (#15).
+ *
+ * A move whose own data gives `multihit` as a `[min, max]` pair (Bullet
+ * Seed, Icicle Spear, ...) reports that pair directly — `@smogon/calc`
+ * itself already defaults an un-overridden one of these to `min + 1` hits
+ * (3, for every such move this generation), or `max` when the attacker's
+ * ability is Skill Link, so no extra logic is needed here to get that
+ * default right (see `computeDamage`, which just forwards this app's own
+ * override, or none, straight through).
+ *
+ * A move whose `multihit` is a single fixed number *and* `multiaccuracy` is
+ * set (Population Bomb, and this generation's Triple Kick) can still hit
+ * fewer times than that in real play, since each hit can individually
+ * miss — `@smogon/calc` does accept a manual `hits` override for these, so
+ * they report a `1..multihit` range rather than `null`.
+ */
+export function multiHitRange(move: MoveItem): MultiHitRange | null {
+	const { multihit, multiaccuracy } = move;
+	if (multihit == null) return null;
+	if (Array.isArray(multihit)) return { min: multihit[0], max: multihit[1] };
+	return multiaccuracy ? { min: 1, max: multihit } : null;
+}
+
+/**
  * True for a move with an actual damage formula — every category other
  * than Status, per `CONTEXT.md`'s Damage Matrix cell convention: a cell is
  * `—` only for a move with no direct damage component at all (base power

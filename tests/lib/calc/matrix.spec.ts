@@ -63,7 +63,15 @@ describe('buildDamageMatrix', () => {
 		const [row] = buildDamageMatrix(sides);
 
 		expect(row.opponents).toEqual([]);
-		expect(row.rows).toEqual([{ move: move('Earthquake'), cells: [] }]);
+		expect(row.rows).toEqual([
+			{
+				move: move('Earthquake'),
+				moveIndex: 0,
+				cells: [],
+				isAllAdjacentMove: true,
+				allyDamage: null
+			}
+		]);
 	});
 
 	it('skips empty move slots rather than padding them', () => {
@@ -163,5 +171,111 @@ describe('buildDamageMatrix', () => {
 		const [row] = buildDamageMatrix(sides);
 
 		expect(row.opponents).not.toContain(a2);
+	});
+
+	it("reports each row's move slot index, skipping the ones filtered out (ally-only moves)", () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			moveNames: ['Helping Hand', 'Earthquake', 'Dragon Claw']
+		});
+		const opponent = buildSlot({ speciesName: 'Snorlax' });
+		const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+		const [row] = buildDamageMatrix(sides);
+
+		// Helping Hand (slot 0) is filtered out entirely — Earthquake and
+		// Dragon Claw keep their real slot indices (1, 2), not 0 and 1.
+		expect(row.rows.map((r) => r.moveIndex)).toEqual([1, 2]);
+	});
+
+	describe('allAdjacent inline ally damage (#12)', () => {
+		it("shows an allAdjacent move's damage against the attacker's own ally, inline in its row", () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.move.name).toBe('Earthquake');
+			expect(row.isAllAdjacentMove).toBe(true);
+			expect(row.allyDamage).not.toBeNull();
+		});
+
+		it('does not show ally damage for an allAdjacentFoes move (Rock Slide)', () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Rock Slide'] });
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.isAllAdjacentMove).toBe(false);
+			expect(row.allyDamage).toBeNull();
+		});
+
+		it('does not show ally damage for an ordinary single-target move', () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.isAllAdjacentMove).toBe(false);
+			expect(row.allyDamage).toBeNull();
+		});
+
+		it('is null when the ally has no species picked yet, even for an allAdjacent move', () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.isAllAdjacentMove).toBe(true);
+			expect(row.allyDamage).toBeNull();
+		});
+	});
+
+	describe('per-row calculation overrides (#14, #15)', () => {
+		it("uses the attacker's per-move-slot assume-crit toggle", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			attacker.moveOptions[0].isCrit = true;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const [row] = buildDamageMatrix(sides);
+
+			expect(row.rows[0].cells[0].damage!.result.move.isCrit).toBe(true);
+		});
+
+		it("uses the attacker's per-move-slot manual hit-count override", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Bullet Seed'] });
+			attacker.moveOptions[0].hits = 5;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const [row] = buildDamageMatrix(sides);
+
+			expect(row.rows[0].cells[0].damage!.result.move.hits).toBe(5);
+		});
+
+		it('applies the same per-move-slot overrides to the inline ally cell of an allAdjacent move', () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			a1.moveOptions[0].isCrit = true;
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.allyDamage!.result.move.isCrit).toBe(true);
+		});
 	});
 });

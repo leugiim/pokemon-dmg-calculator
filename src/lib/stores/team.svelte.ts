@@ -11,8 +11,34 @@ import {
 /** A Pokémon's 4 move slots — any of them can be empty. */
 export type MoveSlots = [MoveItem | null, MoveItem | null, MoveItem | null, MoveItem | null];
 
+/**
+ * A move slot's own Damage Matrix calculation overrides: "assume crit"
+ * (#14), off by default, and a manual multi-hit hit-count override (#15) —
+ * `null` means no override, falling back to `@smogon/calc`'s own default
+ * (3 hits, or the attacker's ability's fixed count when it has one, e.g.
+ * Skill Link — see `multiHitRange`). Kept as one object, rather than a
+ * separate parallel array per field, since every reader/writer of these
+ * (matrix.ts, and `species`'s reset below) always handles both together,
+ * indexed by the same move slot.
+ */
+export interface MoveCalcOptions {
+	isCrit: boolean;
+	hits: number | null;
+}
+
+/** Per-move-slot Damage Matrix overrides — parallel to `MoveSlots`. */
+export type MoveOptionsSlots = [MoveCalcOptions, MoveCalcOptions, MoveCalcOptions, MoveCalcOptions];
+
 function emptyMoves(): MoveSlots {
 	return [null, null, null, null];
+}
+
+function defaultMoveOptions(): MoveCalcOptions {
+	return { isCrit: false, hits: null };
+}
+
+function defaultMoveOptionsSlots(): MoveOptionsSlots {
+	return [defaultMoveOptions(), defaultMoveOptions(), defaultMoveOptions(), defaultMoveOptions()];
 }
 
 /**
@@ -40,6 +66,7 @@ export class TeamSlot {
 	nature = $state<NatureInfo>(NEUTRAL_NATURE);
 	statPoints = $state<StatPoints>(emptyStatPoints());
 	moves = $state<MoveSlots>(emptyMoves());
+	moveOptions = $state<MoveOptionsSlots>(defaultMoveOptionsSlots());
 
 	get species(): SpeciesItem | null {
 		return this.#species;
@@ -47,10 +74,11 @@ export class TeamSlot {
 
 	/**
 	 * Switching to a genuinely different Pokémon voids the item, nature,
-	 * stat points, and moves chosen for the previous one. Switching
-	 * formes within the same family (e.g. into or out of a Mega
-	 * Evolution) only changes what its base stats (and the sprite/types
-	 * derived from them) are — the rest of the build carries over.
+	 * stat points, moves, and per-move Damage Matrix overrides (assume-crit,
+	 * hit-count) chosen for the previous one. Switching formes within the
+	 * same family (e.g. into or out of a Mega Evolution) only changes what
+	 * its base stats (and the sprite/types derived from them) are — the
+	 * rest of the build carries over.
 	 *
 	 * Ability is the one exception: it's voided on *any* species change,
 	 * same family or not, since a different forme can have a wholly
@@ -67,7 +95,20 @@ export class TeamSlot {
 			this.nature = NEUTRAL_NATURE;
 			this.statPoints = emptyStatPoints();
 			this.moves = emptyMoves();
+			this.moveOptions = defaultMoveOptionsSlots();
 		}
+	}
+
+	/**
+	 * Resets one move slot's own Damage Matrix overrides (assume-crit,
+	 * hit-count) back to their defaults. Called whenever the move picked
+	 * for that slot changes (see `MoveSlot.svelte`) — a crit assumption or
+	 * manual hit count that made sense for the previous move would
+	 * otherwise silently carry over and misrepresent an unrelated new move
+	 * picked for the same slot (#14, #15).
+	 */
+	resetMoveOptions(index: number): void {
+		this.moveOptions[index] = defaultMoveOptions();
 	}
 }
 

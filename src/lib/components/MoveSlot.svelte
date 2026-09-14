@@ -15,7 +15,8 @@
 		selected = $bindable(null),
 		disabled = false,
 		attacker,
-		ally
+		ally,
+		moveIndex
 	}: {
 		selected?: MoveItem | null;
 		disabled?: boolean;
@@ -23,7 +24,23 @@
 		attacker: TeamSlot;
 		/** `attacker`'s own ally (the other slot on the same side). */
 		ally: TeamSlot;
+		/** This slot's index within `attacker.moves` (0-3) — see the reset effect below. */
+		moveIndex: number;
 	} = $props();
+
+	// Whenever the move picked for this slot changes, reset its Damage
+	// Matrix overrides (assume-crit, hit-count) back to their defaults —
+	// otherwise a crit assumption or manual hit count set for the previous
+	// move would silently carry over onto an unrelated new one (#14, #15).
+	// Re-picking the *same* move is not a real change and leaves an
+	// existing override untouched.
+	let previousSelected = selected;
+	$effect(() => {
+		if (selected !== previousSelected) {
+			previousSelected = selected;
+			attacker.resetMoveOptions(moveIndex);
+		}
+	});
 
 	// Moves that can only ever be aimed at the ally (adjacentAlly/allies)
 	// don't have anywhere else to show a damage number — they're excluded
