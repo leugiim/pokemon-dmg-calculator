@@ -53,10 +53,24 @@ export function toSmogonPokemon(slot: TeamSlot): Pokemon {
 	});
 }
 
-function toSmogonMove(move: MoveItem, attacker: TeamSlot): Move {
+/**
+ * Per-calculation overrides layered on top of a move's own data — both
+ * default to `@smogon/calc`'s own behavior when omitted: no crit assumed
+ * (`isCrit`, #14), and (for a multi-hit move) 3 hits, or the attacker's
+ * ability's fixed count when it has one, e.g. Skill Link (`hits`, #15).
+ * See `multiHitRange` for which moves accept a `hits` override at all.
+ */
+export interface DamageOptions {
+	isCrit?: boolean;
+	hits?: number;
+}
+
+function toSmogonMove(move: MoveItem, attacker: TeamSlot, options: DamageOptions = {}): Move {
 	return new Move(GEN_NUM, move.name, {
 		ability: attacker.ability ?? undefined,
-		item: attacker.item?.name
+		item: attacker.item?.name,
+		isCrit: options.isCrit,
+		hits: options.hits
 	});
 }
 
@@ -76,12 +90,20 @@ function toPercent(damage: number, maxHP: number): string {
  * Computes damage for one (attacker, move, target) triple. Always uses a
  * `gameType: 'Doubles'` field — this app never models Singles — even
  * though no doubles-specific field flags (Follow Me redirection, spread
- * damage, ally support, ...) are wired up yet.
+ * damage, ally support, ...) are wired up yet. `options` layers the
+ * calculation-time overrides callers opt into per move (assume-crit, a
+ * manual multi-hit count) on top of the move/attacker's own data — see
+ * `DamageOptions`.
  */
-export function computeDamage(attacker: TeamSlot, move: MoveItem, target: TeamSlot): DamageDisplay {
+export function computeDamage(
+	attacker: TeamSlot,
+	move: MoveItem,
+	target: TeamSlot,
+	options: DamageOptions = {}
+): DamageDisplay {
 	const attackerMon = toSmogonPokemon(attacker);
 	const targetMon = toSmogonPokemon(target);
-	const smogonMove = toSmogonMove(move, attacker);
+	const smogonMove = toSmogonMove(move, attacker, options);
 	const field = new Field({ gameType: 'Doubles' });
 
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);

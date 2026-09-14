@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { allMoves, hasDamageComponent, isAllyOnlyTarget } from '$lib/calc/moves';
+import {
+	allMoves,
+	hasDamageComponent,
+	isAllAdjacentTarget,
+	isAllyOnlyTarget,
+	multiHitRange
+} from '$lib/calc/moves';
 
 function move(name: string) {
 	const m = allMoves.find((m) => m.name === name);
@@ -98,6 +104,57 @@ const ZERO_BASE_POWER_DAMAGE_MOVES = [
 	'Hard Press',
 	'Ruination'
 ];
+
+describe('isAllAdjacentTarget', () => {
+	it.each(['Earthquake', 'Discharge', 'Bulldoze', 'Explosion'])(
+		'is true for %s, whose real target is allAdjacent',
+		(name) => {
+			expect(isAllAdjacentTarget(move(name))).toBe(true);
+		}
+	);
+
+	it('is false for allAdjacentFoes moves, which never hit the ally (#12)', () => {
+		// Rock Slide hits both opponents but not the user's own ally, unlike
+		// an allAdjacent move (Earthquake) — see ADR-0001.
+		expect(isAllAdjacentTarget(move('Rock Slide'))).toBe(false);
+	});
+
+	it('is false for a move that only ever targets a single opponent', () => {
+		expect(isAllAdjacentTarget(move('Flamethrower'))).toBe(false);
+	});
+
+	it('is false for an ally-only-target move', () => {
+		expect(isAllAdjacentTarget(move('Helping Hand'))).toBe(false);
+	});
+});
+
+describe('multiHitRange', () => {
+	it('is null for a move with no multi-hit component at all', () => {
+		expect(multiHitRange(move('Flamethrower'))).toBeNull();
+	});
+
+	it.each(['Bullet Seed', 'Icicle Spear', 'Rock Blast', 'Water Shuriken', 'Tail Slap'])(
+		'is {min: 2, max: 5} for %s, a standard variable multi-hit move',
+		(name) => {
+			expect(multiHitRange(move(name))).toEqual({ min: 2, max: 5 });
+		}
+	);
+
+	it('is {min: 1, max: 10} for Population Bomb, a multiaccuracy move whose hit count can be manually reduced', () => {
+		expect(multiHitRange(move('Population Bomb'))).toEqual({ min: 1, max: 10 });
+	});
+
+	it("is {min: 1, max: 3} for Triple Kick, this generation's other multiaccuracy multi-hit move", () => {
+		expect(multiHitRange(move('Triple Kick'))).toEqual({ min: 1, max: 3 });
+	});
+
+	it.each(['Double Hit', 'Bonemerang', 'Double Kick', 'Twineedle', 'Surging Strikes'])(
+		'is null for %s, whose hit count is entirely fixed — @smogon/calc ignores any override for it',
+		(name) => {
+			expect(multiHitRange(move(name))).toBeNull();
+		}
+	);
+});
 
 describe('hasDamageComponent', () => {
 	it('is false for a pure status move', () => {
