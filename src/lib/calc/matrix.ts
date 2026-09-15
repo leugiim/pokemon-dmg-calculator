@@ -1,7 +1,9 @@
 import {
 	defaultTeamAllySupport,
+	defaultTeamSideConditions,
 	type TeamAllySupport,
 	type TeamId,
+	type TeamSideConditions,
 	type TeamSlot
 } from '../stores/team.svelte';
 import { defaultFieldConditions, type FieldConditions } from '../stores/field.svelte';
@@ -64,6 +66,8 @@ function pairings(slots: [TeamSlot, TeamSlot]): [attacker: TeamSlot, ally: TeamS
  * `defenderSide` ally-support flags (Friend Guard, ADR-0003, #13).
  * `ownTeamSupport`/`opponentTeamSupport` are the attacker's own and the
  * opposing team's shared manual ally-support overrides, respectively;
+ * `ownTeamSideConditions`/`opponentTeamSideConditions` are the same split
+ * for screens/hazards (no ally involved — see `sideConditions.ts`);
  * `fieldConditions` is the shared weather/terrain (#24), identical for
  * every cell regardless of which side is attacking.
  */
@@ -74,6 +78,8 @@ function buildRows(
 	opponentAllies: Map<TeamSlot, TeamSlot>,
 	ownTeamSupport: TeamAllySupport,
 	opponentTeamSupport: TeamAllySupport,
+	ownTeamSideConditions: TeamSideConditions,
+	opponentTeamSideConditions: TeamSideConditions,
 	fieldConditions: FieldConditions
 ): DamageMatrixRow[] {
 	return attacker.moves.flatMap((move, moveIndex) => {
@@ -101,7 +107,8 @@ function buildRows(
 						? computeDamage(attacker, move, target, {
 								...baseOptions,
 								defenderAlly: opponentAllies.get(target),
-								defenderAllySupport: opponentTeamSupport
+								defenderAllySupport: opponentTeamSupport,
+								defenderSideConditions: opponentTeamSideConditions
 							})
 						: null
 				})),
@@ -112,13 +119,15 @@ function buildRows(
 				// opponent) — its own defenderSide ally is the attacker, on the
 				// *same* team as attacker/ally (a Friend-Guard-holding attacker
 				// reduces damage it deals its own ally, since Friend Guard only
-				// ever exempts the holder itself), so it shares `ownTeamSupport`.
+				// ever exempts the holder itself), so it shares `ownTeamSupport`
+				// and `ownTeamSideConditions` alike.
 				allyDamage:
 					damaging && isAllAdjacentMove && ally.species
 						? computeDamage(attacker, move, ally, {
 								...baseOptions,
 								defenderAlly: attacker,
-								defenderAllySupport: ownTeamSupport
+								defenderAllySupport: ownTeamSupport,
+								defenderSideConditions: ownTeamSideConditions
 							})
 						: null
 			}
@@ -142,15 +151,20 @@ function buildRows(
  * or column-less) entry — the caller decides how to render that, rather
  * than this function guessing at a placeholder.
  *
- * `allySupport`/`fieldConditions` default to "no overrides, no weather, no
- * terrain" when omitted — every existing caller that doesn't care about
- * ally support or field conditions keeps working unchanged.
+ * `allySupport`/`sideConditions`/`fieldConditions` default to "no
+ * overrides, no side conditions, no weather, no terrain" when omitted —
+ * every existing caller that doesn't care about any of these keeps working
+ * unchanged.
  */
 export function buildDamageMatrix(
 	sides: Record<TeamId, [TeamSlot, TeamSlot]>,
 	allySupport: Record<TeamId, TeamAllySupport> = {
 		teamA: defaultTeamAllySupport(),
 		teamB: defaultTeamAllySupport()
+	},
+	sideConditions: Record<TeamId, TeamSideConditions> = {
+		teamA: defaultTeamSideConditions(),
+		teamB: defaultTeamSideConditions()
 	},
 	fieldConditions: FieldConditions = defaultFieldConditions()
 ): DamageMatrixAttacker[] {
@@ -175,6 +189,8 @@ export function buildDamageMatrix(
 					opponentAllies,
 					allySupport[teamId],
 					allySupport[otherTeamId],
+					sideConditions[teamId],
+					sideConditions[otherTeamId],
 					fieldConditions
 				)
 			});

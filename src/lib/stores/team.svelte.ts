@@ -79,6 +79,39 @@ export function defaultTeamAllySupport(): TeamAllySupport {
 }
 
 /**
+ * A team's shared side conditions: screens, Stealth Rock and Spikes
+ * — real `@smogon/calc` `Side` state, but a distinct concept from ally
+ * support (`TeamAllySupport`): these never derive from any Pokémon's own
+ * `ability`, so there's no Auto mode, just plain manual toggles/counts,
+ * off/zero by default. Team-wide for the same reason as ally support —
+ * they describe a condition on the whole side, not one specific Pokémon.
+ * `protect` is a deliberate simplification: real Protect is a single
+ * Pokémon's action for one turn, but this toggle is for testing the
+ * hypothetical "what if this side's target had protected" against every
+ * calculation involving either of its two Pokémon at once.
+ */
+export interface TeamSideConditions {
+	protect: boolean;
+	reflect: boolean;
+	lightScreen: boolean;
+	auroraVeil: boolean;
+	stealthRock: boolean;
+	/** 0-3 layers of Spikes. */
+	spikes: number;
+}
+
+export function defaultTeamSideConditions(): TeamSideConditions {
+	return {
+		protect: false,
+		reflect: false,
+		lightScreen: false,
+		auroraVeil: false,
+		stealthRock: false,
+		spikes: 0
+	};
+}
+
+/**
  * The species' "family" root — the same for every forme of a given
  * Pokémon (Charizard, Charizard-Mega-X, and Charizard-Mega-Y all
  * resolve to `Charizard`), so switching between them can be told apart
@@ -177,4 +210,15 @@ export const teamBAllySupport = $state(defaultTeamAllySupport());
 export const allySupport: Record<TeamId, TeamAllySupport> = {
 	teamA: teamAAllySupport,
 	teamB: teamBAllySupport
+};
+
+/** Team A's shared side conditions (screens, Stealth Rock, Spikes). */
+export const teamASideConditions = $state(defaultTeamSideConditions());
+
+/** Team B's shared side conditions (screens, Stealth Rock, Spikes). */
+export const teamBSideConditions = $state(defaultTeamSideConditions());
+
+export const sideConditions: Record<TeamId, TeamSideConditions> = {
+	teamA: teamASideConditions,
+	teamB: teamBSideConditions
 };

@@ -37,3 +37,8 @@ Modifiers on a `Side` that originate from the acting Pokémon's ally rather than
 
 **Field conditions**:
 Weather and terrain (`@smogon/calc`'s own `Field.weather`/`.terrain`) — global to the whole battlefield, one shared value each, `None` by default. Unlike ally support, these are never scoped to a team: changing either affects both directions of the matchup (A→B and B→A) identically.
+
+**Side conditions**:
+Screens (Reflect, Light Screen, Aurora Veil), Protect, and entry hazards (Stealth Rock, Spikes) — real `@smogon/calc` `Side` state, but a distinct concept from ally support: none of these derive from any Pokémon's own `ability`, so there's no Auto mode, just plain manual toggles/counts, off/zero by default. Team-wide for the same reason as ally support (they describe a condition on the whole side, not one specific Pokémon), applying to whichever team is the _target_ in a given calculation. `protect` is a deliberate simplification of a real, single-turn, single-Pokémon action into a team-wide "what if" toggle.
+
+Not every field/side toggle a reference damage calculator might expose is implemented: Leech Seed and Salt Cure are genuine `@smogon/calc` `Side` fields, but only affect its free-text `result.desc()` output, which this app never renders — wiring them would be a no-op. Ingrain, Curse, Binding, Charge and Aqua Ring aren't modeled by `@smogon/calc` at all (no `Side`/`Field`/`Pokemon` flag any mechanics function reads) — a toggle for them would be pure decoration with no effect on any number this app shows.

@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { teamA, teamB, sides, allySupport } from '$lib/stores/team.svelte';
+	import { teamA, teamB, sides, allySupport, sideConditions } from '$lib/stores/team.svelte';
 	import { field } from '$lib/stores/field.svelte';
 	import AllySupportToggles from '$lib/components/AllySupportToggles.svelte';
 	import DamageMatrix from '$lib/components/DamageMatrix.svelte';
 	import FieldConditionsPicker from '$lib/components/FieldConditionsPicker.svelte';
+	import SideConditionsToggles from '$lib/components/SideConditionsToggles.svelte';
 	import TeamSlotCard from '$lib/components/TeamSlotCard.svelte';
 
 	const teamADisabled = $derived(!teamA[0].species && !teamA[1].species);
@@ -30,6 +31,7 @@
 				<TeamSlotCard bind:slot={teamA[i]} ally={teamA[i === 0 ? 1 : 0]} />
 			{/each}
 			<AllySupportToggles bind:support={allySupport.teamA} slots={teamA} disabled={teamADisabled} />
+			<SideConditionsToggles bind:conditions={sideConditions.teamA} disabled={teamADisabled} />
 		</section>
 
 		<span class="self-center justify-self-center text-sm font-bold text-gray-500">VS</span>
@@ -39,8 +41,9 @@
 				<TeamSlotCard bind:slot={teamB[i]} ally={teamB[i === 0 ? 1 : 0]} />
 			{/each}
 			<AllySupportToggles bind:support={allySupport.teamB} slots={teamB} disabled={teamBDisabled} />
+			<SideConditionsToggles bind:conditions={sideConditions.teamB} disabled={teamBDisabled} />
 		</section>
 	</div>
 
-	<DamageMatrix {sides} {allySupport} {field} />
+	<DamageMatrix {sides} {allySupport} {sideConditions} {field} />
 </div>

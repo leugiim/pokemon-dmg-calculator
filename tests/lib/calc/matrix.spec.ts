@@ -3,9 +3,11 @@ import { allSpecies } from '$lib/calc/generation';
 import { allMoves } from '$lib/calc/moves';
 import {
 	defaultTeamAllySupport,
+	defaultTeamSideConditions,
 	TeamSlot,
 	type TeamAllySupport,
-	type TeamId
+	type TeamId,
+	type TeamSideConditions
 } from '$lib/stores/team.svelte';
 import { buildDamageMatrix } from '$lib/calc/matrix';
 
@@ -51,6 +53,16 @@ function allySupportOf(
 	return {
 		teamA: { ...defaultTeamAllySupport(), ...overrides.teamA },
 		teamB: { ...defaultTeamAllySupport(), ...overrides.teamB }
+	};
+}
+
+/** `sideConditions` for both teams, each team's conditions layered onto the defaults. */
+function sideConditionsOf(
+	overrides: Partial<Record<TeamId, Partial<TeamSideConditions>>> = {}
+): Record<TeamId, TeamSideConditions> {
+	return {
+		teamA: { ...defaultTeamSideConditions(), ...overrides.teamA },
+		teamB: { ...defaultTeamSideConditions(), ...overrides.teamB }
 	};
 }
 
@@ -436,7 +448,7 @@ describe('buildDamageMatrix', () => {
 			const b = buildSlot({ speciesName: 'Snorlax', moveNames: ['Tackle'] });
 			const sides = sidesOf([a, new TeamSlot()], [b, new TeamSlot()]);
 
-			const attackers = buildDamageMatrix(sides, allySupportOf(), {
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
 				weather: 'Rain',
 				terrain: null
 			});
@@ -457,6 +469,71 @@ describe('buildDamageMatrix', () => {
 
 			expect(row.cells[0].damage!.result.field.weather).toBeUndefined();
 			expect(row.cells[0].damage!.result.field.terrain).toBeUndefined();
+		});
+	});
+
+	describe('side conditions: screens, Protect, hazards', () => {
+		it("zeroes a matrix cell's damage when the target's team has Protect up", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamB: { protect: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.range()).toEqual([0, 0]);
+		});
+
+		it("reduces a Physical move's damage when the target's team has Reflect up", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const withoutReflect = buildDamageMatrix(sides);
+			const withReflect = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamB: { reflect: true } })
+			);
+
+			const before = withoutReflect.find((r) => r.attacker === attacker)!.rows[0];
+			const after = withReflect.find((r) => r.attacker === attacker)!.rows[0];
+			expect(after.cells[0].damage!.result.field.defenderSide.isReflect).toBe(true);
+			expect(after.cells[0].damage!.result.range()[1]).toBeLessThan(
+				before.cells[0].damage!.result.range()[1]
+			);
+		});
+
+		it("applies the target team's side conditions, never the attacker's own team's", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamA: { protect: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.defenderSide.isProtected).toBe(false);
+			expect(row.cells[0].damage!.result.range()).not.toEqual([0, 0]);
+		});
+
+		it('defaults to no side conditions when omitted', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.defenderSide.isProtected).toBe(false);
+			expect(row.cells[0].damage!.result.field.defenderSide.spikes).toBe(0);
 		});
 	});
 });

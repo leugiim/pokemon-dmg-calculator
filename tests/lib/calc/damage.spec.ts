@@ -4,7 +4,11 @@ import { GEN_NUM, allSpecies } from '$lib/calc/generation';
 import { allNatures, calcChampionsStat, STAT_ORDER, type NatureName } from '$lib/calc/format';
 import { allItems } from '$lib/calc/items';
 import { allMoves } from '$lib/calc/moves';
-import { defaultTeamAllySupport, TeamSlot } from '$lib/stores/team.svelte';
+import {
+	defaultTeamAllySupport,
+	defaultTeamSideConditions,
+	TeamSlot
+} from '$lib/stores/team.svelte';
 import { computeDamage, toSmogonPokemon } from '$lib/calc/damage';
 
 function nature(name: NatureName) {
@@ -631,6 +635,85 @@ describe('computeDamage', () => {
 
 			expect(grassyTerrain.result.field.terrain).toBe('Grassy');
 			expect(grassyTerrain.result.range()[1]).toBeGreaterThan(noTerrain.result.range()[1]);
+		});
+	});
+
+	describe('side conditions: screens, Protect, hazards', () => {
+		it('applies no side conditions when defenderSideConditions is omitted', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+			expect(result.field.defenderSide.isProtected).toBe(false);
+			expect(result.field.defenderSide.spikes).toBe(0);
+		});
+
+		it('zeroes damage when the defender team has Protect up', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+				defenderSideConditions: { ...defaultTeamSideConditions(), protect: true }
+			});
+
+			expect(result.range()).toEqual([0, 0]);
+		});
+
+		it('merges side conditions with Friend Guard onto the same defenderSide, rather than one overwriting the other', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+			const defenderAlly = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Friend Guard',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+				defenderAlly,
+				defenderSideConditions: { ...defaultTeamSideConditions(), reflect: true }
+			});
+
+			expect(result.field.defenderSide.isFriendGuard).toBe(true);
+			expect(result.field.defenderSide.isReflect).toBe(true);
 		});
 	});
 });

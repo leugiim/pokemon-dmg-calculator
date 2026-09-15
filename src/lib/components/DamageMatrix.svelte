@@ -1,5 +1,10 @@
 <script lang="ts">
-	import type { TeamAllySupport, TeamId, TeamSlot } from '$lib/stores/team.svelte';
+	import type {
+		TeamAllySupport,
+		TeamId,
+		TeamSideConditions,
+		TeamSlot
+	} from '$lib/stores/team.svelte';
 	import type { FieldConditions } from '$lib/stores/field.svelte';
 	import { buildDamageMatrix } from '$lib/calc/matrix';
 	import { hasDamageComponent, multiHitRange, type MultiHitRange } from '$lib/calc/moves';
@@ -8,10 +13,12 @@
 	let {
 		sides,
 		allySupport,
+		sideConditions,
 		field
 	}: {
 		sides: Record<TeamId, [TeamSlot, TeamSlot]>;
 		allySupport: Record<TeamId, TeamAllySupport>;
+		sideConditions: Record<TeamId, TeamSideConditions>;
 		field: FieldConditions;
 	} = $props();
 
@@ -33,7 +40,7 @@
 		return slot.species?.name ?? '';
 	}
 
-	const attackers = $derived(buildDamageMatrix(sides, allySupport, field));
+	const attackers = $derived(buildDamageMatrix(sides, allySupport, sideConditions, field));
 </script>
 
 <section class="flex flex-col gap-4 rounded-xl border border-gray-800 bg-gray-900 p-4">

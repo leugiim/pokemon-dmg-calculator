@@ -1,10 +1,11 @@
 import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smogon/calc';
 import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
-import type { TeamAllySupport, TeamSlot } from '../stores/team.svelte';
+import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
 import type { Terrain, Weather } from '../stores/field.svelte';
 import type { MoveItem } from './moves';
 import { attackerSideFlags, defenderSideFlags } from './allySupport';
+import { sideConditionFlags } from './sideConditions';
 
 /**
  * Converts one stat's Pokemon Champions Stat Point investment into the
@@ -88,6 +89,13 @@ export interface DamageOptions {
 	defenderAlly?: TeamSlot;
 	/** `defenderAlly`'s own team's shared manual ally-support overrides. See `attackerAllySupport`. */
 	defenderAllySupport?: TeamAllySupport;
+	/**
+	 * The target's own team's shared side conditions (screens, Stealth
+	 * Rock, Spikes) — merged onto `defenderSide` alongside Friend Guard.
+	 * Unlike ally support, these have no Auto mode, so there's nothing to
+	 * "omit to fall back to" — omitting this just means none are active.
+	 */
+	defenderSideConditions?: TeamSideConditions;
 	/** Field-wide weather (#24) — shared by both sides, unlike ally support. */
 	weather?: Weather;
 	/** Field-wide terrain (#24). See `weather`. */
@@ -140,9 +148,12 @@ export function computeDamage(
 		attackerSide: options.attackerAlly
 			? attackerSideFlags(options.attackerAlly, options.attackerAllySupport)
 			: undefined,
-		defenderSide: options.defenderAlly
-			? defenderSideFlags(options.defenderAlly, options.defenderAllySupport)
-			: undefined
+		defenderSide: {
+			...(options.defenderAlly
+				? defenderSideFlags(options.defenderAlly, options.defenderAllySupport)
+				: {}),
+			...(options.defenderSideConditions ? sideConditionFlags(options.defenderSideConditions) : {})
+		}
 	});
 
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);
