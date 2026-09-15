@@ -3,12 +3,12 @@
 </script>
 
 <div
-	class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl border border-gray-800 bg-gray-900 p-3 text-[11px] text-gray-400 shadow-sm"
+	class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl border border-gray-800 bg-gray-900 p-3 text-[10px] text-gray-400 shadow-sm"
 >
 	<label class="flex items-center gap-1">
 		Weather
 		<select
-			class="rounded bg-gray-800 px-1.5 py-0.5 text-gray-200"
+			class="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-200"
 			aria-label="Weather"
 			bind:value={field.weather}
 		>
@@ -21,7 +21,7 @@
 	<label class="flex items-center gap-1">
 		Terrain
 		<select
-			class="rounded bg-gray-800 px-1.5 py-0.5 text-gray-200"
+			class="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-200"
 			aria-label="Terrain"
 			bind:value={field.terrain}
 		>

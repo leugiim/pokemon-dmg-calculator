@@ -362,6 +362,32 @@ describe('computeDamage', () => {
 			expect(result.field.defenderSide.isFriendGuard).toBe(false);
 		});
 
+		it('still applies Helping Hand/Tailwind and a manual static override from *AllySupport alone, even with no *Ally TeamSlot passed at all', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAllySupport: { ...defaultTeamAllySupport(), helpingHand: true, powerSpot: true },
+				defenderAllySupport: { ...defaultTeamAllySupport(), friendGuard: true }
+			});
+
+			expect(result.field.attackerSide.isHelpingHand).toBe(true);
+			expect(result.field.attackerSide.isPowerSpot).toBe(true);
+			expect(result.field.defenderSide.isFriendGuard).toBe(true);
+		});
+
 		it("boosts the attacker's damage when attackerAlly has Power Spot", () => {
 			const attacker = buildSlot({
 				speciesName: 'Garchomp',

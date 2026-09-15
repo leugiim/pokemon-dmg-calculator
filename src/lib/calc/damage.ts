@@ -67,12 +67,11 @@ export interface DamageOptions {
 	isCrit?: boolean;
 	hits?: number;
 	/**
-	 * The attacker's own ally, used (together with `attackerAllySupport`)
-	 * to derive `attackerSide`'s Battery, Power Spot, Steely Spirit,
-	 * Helping Hand and Tailwind flags (ADR-0003, #13). Omitted entirely —
-	 * not just left with no support active — when a caller has no
-	 * meaningful ally to pass (e.g. a lone on-demand calculation with
-	 * nothing to derive from).
+	 * The attacker's own ally, used to auto-derive `attackerSide`'s Battery,
+	 * Power Spot and Steely Spirit flags from its `ability` (ADR-0003, #13)
+	 * — Helping Hand/Tailwind and a manual static override come from
+	 * `attackerAllySupport` alone and apply even when this is omitted (e.g.
+	 * a lone on-demand calculation with no real ally object to pass).
 	 */
 	attackerAlly?: TeamSlot;
 	/**
@@ -141,17 +140,22 @@ export function computeDamage(
 	const attackerMon = toSmogonPokemon(attacker);
 	const targetMon = toSmogonPokemon(target);
 	const smogonMove = toSmogonMove(move, attacker, options);
+	// attackerSideFlags/defenderSideFlags/sideConditionFlags are called
+	// unconditionally — none of them require their TeamSlot/TeamAllySupport
+	// arguments to be present (see attackerSideFlags' own doc comment): a
+	// caller that passes attackerAllySupport with no attackerAlly still gets
+	// Helping Hand/Tailwind/a forced static override applied, rather than
+	// silently losing the whole side to all-false defaults. The two
+	// defenderSide producers currently return disjoint flag names
+	// (isFriendGuard vs. isProtected/isReflect/.../spikes) — if that ever
+	// stops being true, the second spread below would silently win.
 	const field = new Field({
 		gameType: 'Doubles',
 		weather: options.weather,
 		terrain: options.terrain,
-		attackerSide: options.attackerAlly
-			? attackerSideFlags(options.attackerAlly, options.attackerAllySupport)
-			: undefined,
+		attackerSide: attackerSideFlags(options.attackerAlly, options.attackerAllySupport),
 		defenderSide: {
-			...(options.defenderAlly
-				? defenderSideFlags(options.defenderAlly, options.defenderAllySupport)
-				: {}),
+			...defenderSideFlags(options.defenderAlly, options.defenderAllySupport),
 			...(options.defenderSideConditions ? sideConditionFlags(options.defenderSideConditions) : {})
 		}
 	});

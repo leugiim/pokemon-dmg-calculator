@@ -1,6 +1,11 @@
 <script lang="ts">
 	import type { TeamAllySupport, TeamSlot } from '$lib/stores/team.svelte';
-	import { staticAllySupportAbility, STATIC_ALLY_SUPPORT_FLAGS } from '$lib/calc/allySupport';
+	import {
+		providesStaticSupport,
+		staticAllySupportAbility,
+		STATIC_ALLY_SUPPORT_FLAGS,
+		type StaticAllySupportFlag
+	} from '$lib/calc/allySupport';
 
 	// support is $bindable: this two-way-binds into support.friendGuard /
 	// .battery / ... via child bind: directives — see +page.svelte (where
@@ -14,15 +19,31 @@
 	}: { support: TeamAllySupport; slots: [TeamSlot, TeamSlot]; disabled?: boolean } = $props();
 
 	/**
-	 * Which of this team's two Pokémon Auto mode would currently credit for
-	 * `ability` — at most one, since only one Pokémon can have a given
-	 * ability equipped — or `null` if neither does. Shown as a tooltip so a
-	 * user in Auto mode isn't left guessing whether the flag is actually in
-	 * effect (it can only ever help one specific teammate's calculations,
-	 * never both, even though the override next to it is team-wide).
+	 * Which of this team's two Pokémon Auto mode would credit for `flag` —
+	 * at most one, since only one Pokémon can have a given ability equipped
+	 * — or `null` if neither does. Routed through `providesStaticSupport`
+	 * itself (with no `teamSupport`, so it falls straight through to the
+	 * plain ability check) rather than re-implementing the match here, so
+	 * this can never drift from the real derivation `computeDamage` uses.
 	 */
-	function autoProvider(ability: string): TeamSlot | null {
-		return slots.find((slot) => slot.ability === ability) ?? null;
+	function autoProvider(flag: StaticAllySupportFlag): TeamSlot | null {
+		return slots.find((slot) => providesStaticSupport(slot, flag)) ?? null;
+	}
+
+	/**
+	 * Describes `flag`'s *actual* current state — not just what Auto mode
+	 * would derive — so a manual On/Off override doesn't leave the tooltip
+	 * describing a state the calculator isn't actually using (a forced-Off
+	 * flag next to "Auto: X has it" reads as still active).
+	 */
+	function tooltip(flag: StaticAllySupportFlag): string {
+		const ability = staticAllySupportAbility(flag);
+		const provider = autoProvider(flag);
+		if (support[flag] === null) {
+			return `${ability}: Auto — ${provider ? `${provider.species?.name ?? 'that Pokémon'} has it` : 'neither Pokémon has it'}`;
+		}
+		const active = providesStaticSupport(provider ?? slots[0], flag, support);
+		return `${ability}: forced ${active ? 'on' : 'off'} for the whole team`;
 	}
 </script>
 
@@ -32,13 +53,7 @@
 	<span class="font-medium text-gray-300">Ally support</span>
 	{#each STATIC_ALLY_SUPPORT_FLAGS as flag (flag)}
 		{@const ability = staticAllySupportAbility(flag)}
-		{@const provider = autoProvider(ability)}
-		<label
-			class="flex items-center gap-1"
-			title="Auto: {provider
-				? `${provider.species?.name ?? 'that Pokémon'} has ${ability}`
-				: `neither Pokémon has ${ability}`}"
-		>
+		<label class="flex items-center gap-1" title={tooltip(flag)}>
 			{ability}
 			<select
 				class="rounded bg-gray-800 px-1 py-0.5 text-[10px] text-gray-200 disabled:opacity-30"

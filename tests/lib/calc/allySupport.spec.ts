@@ -97,6 +97,20 @@ describe('providesStaticSupport', () => {
 			expect(providesStaticSupport(other, flag, support)).toBe(false);
 		}
 	);
+
+	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
+		'is false for %s with no ally and no override (nothing to derive from)',
+		(flag) => {
+			expect(providesStaticSupport(undefined, flag)).toBe(false);
+		}
+	);
+
+	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
+		'still lets a team override force %s on with no ally TeamSlot at all',
+		(flag) => {
+			expect(providesStaticSupport(undefined, flag, teamSupport({ [flag]: true }))).toBe(true);
+		}
+	);
 });
 
 describe('attackerSideFlags', () => {
