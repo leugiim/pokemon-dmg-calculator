@@ -30,7 +30,10 @@ Damage calculated against a Pokémon's own ally rather than an opponent.
 - Moves that hit the ally **simultaneously** with opponents in real play (`allAdjacent`, e.g. Earthquake) show that ally damage inline in the Damage Matrix itself — it isn't optional, since that's what using the move actually does.
 
 **Ally support**:
-Modifiers on a `Side` that originate from the acting Pokémon's ally rather than itself (Friend Guard, Battery, Power Spot, Steely Spirit, Helping Hand, Tailwind).
+Modifiers on a `Side` that originate from the acting Pokémon's ally rather than itself (Friend Guard, Battery, Power Spot, Steely Spirit, Helping Hand, Tailwind). The manual override for all six is one shared toggle per `TeamId`, not per `TeamSlot` — turning one on or off applies to the whole team at once, since these are conditions on the side, not a specific Pokémon. Auto mode (the default for the four static flags) still only credits whichever single slot's own `ability` actually grants it, never both team members at once.
 
-- **Static ally support**: derived automatically from the ally's `ability` field (Friend Guard, Battery, Power Spot, Steely Spirit) — on by default when the ally has that ability, with a manual override toggle.
-- **Turn-dependent ally support**: Helping Hand, Tailwind — no static data source (they depend on an action taken that turn, not a fixed ability/item), so manual toggle only, off by default.
+- **Static ally support**: derived automatically from the ally's `ability` field (Friend Guard, Battery, Power Spot, Steely Spirit) — on by default when the specific ally has that ability, with a team-wide manual override toggle (Auto/On/Off).
+- **Turn-dependent ally support**: Helping Hand, Tailwind — no static data source (they depend on an action taken that turn, not a fixed ability/item), so manual toggle only (team-wide), off by default.
+
+**Field conditions**:
+Weather and terrain (`@smogon/calc`'s own `Field.weather`/`.terrain`) — global to the whole battlefield, one shared value each, `None` by default. Unlike ally support, these are never scoped to a team: changing either affects both directions of the matchup (A→B and B→A) identically.

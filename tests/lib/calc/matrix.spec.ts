@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { allSpecies } from '$lib/calc/generation';
 import { allMoves } from '$lib/calc/moves';
-import { TeamSlot, type TeamId } from '$lib/stores/team.svelte';
+import {
+	defaultTeamAllySupport,
+	TeamSlot,
+	type TeamAllySupport,
+	type TeamId
+} from '$lib/stores/team.svelte';
 import { buildDamageMatrix } from '$lib/calc/matrix';
 
 function species(name: string) {
@@ -37,6 +42,16 @@ function buildSlot({
 
 function sidesOf(teamA: [TeamSlot, TeamSlot], teamB: [TeamSlot, TeamSlot]) {
 	return { teamA, teamB } satisfies Record<TeamId, [TeamSlot, TeamSlot]>;
+}
+
+/** `allySupport` for both teams, each team's overrides layered onto the defaults. */
+function allySupportOf(
+	overrides: Partial<Record<TeamId, Partial<TeamAllySupport>>> = {}
+): Record<TeamId, TeamAllySupport> {
+	return {
+		teamA: { ...defaultTeamAllySupport(), ...overrides.teamA },
+		teamB: { ...defaultTeamAllySupport(), ...overrides.teamB }
+	};
 }
 
 describe('buildDamageMatrix', () => {
@@ -287,7 +302,7 @@ describe('buildDamageMatrix', () => {
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
 
-			const attackers = buildDamageMatrix(sides);
+			const attackers = buildDamageMatrix(sides, allySupportOf());
 			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
 
 			expect(row.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(true);
@@ -300,20 +315,19 @@ describe('buildDamageMatrix', () => {
 			opponentAlly.ability = 'Friend Guard';
 			const sides = sidesOf([attacker, new TeamSlot()], [opponent, opponentAlly]);
 
-			const attackers = buildDamageMatrix(sides);
+			const attackers = buildDamageMatrix(sides, allySupportOf());
 			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
 
 			expect(row.cells[0].damage!.result.field.defenderSide.isFriendGuard).toBe(true);
 		});
 
-		it("applies the manual Helping Hand toggle from the attacker's own ally to a matrix cell", () => {
+		it("applies the attacker team's shared Helping Hand toggle to a matrix cell", () => {
 			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
 			const ally = buildSlot({ speciesName: 'Dragonite' });
-			ally.providesHelpingHand = true;
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
 
-			const attackers = buildDamageMatrix(sides);
+			const attackers = buildDamageMatrix(sides, allySupportOf({ teamA: { helpingHand: true } }));
 			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
 
 			expect(row.cells[0].damage!.result.field.attackerSide.isHelpingHand).toBe(true);
@@ -326,7 +340,7 @@ describe('buildDamageMatrix', () => {
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
 
-			const attackers = buildDamageMatrix(sides);
+			const attackers = buildDamageMatrix(sides, allySupportOf());
 			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
 
 			expect(row.allyDamage!.result.field.attackerSide.isPowerSpot).toBe(true);
@@ -339,24 +353,110 @@ describe('buildDamageMatrix', () => {
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
 
-			const attackers = buildDamageMatrix(sides);
+			const attackers = buildDamageMatrix(sides, allySupportOf());
 			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
 
 			expect(row.allyDamage!.result.field.defenderSide.isFriendGuard).toBe(true);
 		});
 
-		it('lets a manual override on the ally force Steely Spirit on despite a non-matching ability', () => {
+		it('lets a team override force Steely Spirit on despite no team member actually having it', () => {
 			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Iron Head'] });
 			const ally = buildSlot({ speciesName: 'Dragonite' });
 			ally.ability = 'Multiscale';
-			ally.allySupportOverrides.steelySpirit = true;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf({ teamA: { steelySpirit: true } }));
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.attackerSide.isSteelySpirit).toBe(true);
+		});
+
+		it('a team override applies to both slots at once: turning it on benefits either attacker even though neither actually has the ability', () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const a2 = buildSlot({ speciesName: 'Dragonite', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf({ teamA: { powerSpot: true } }));
+			const row1 = attackers.find((r) => r.attacker === a1)!.rows[0];
+			const row2 = attackers.find((r) => r.attacker === a2)!.rows[0];
+
+			expect(row1.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(true);
+			expect(row2.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(true);
+		});
+
+		it('turning a team override off suppresses the flag even for the slot whose ally really has the ability', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Dragonite' });
+			ally.ability = 'Power Spot';
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf({ teamA: { powerSpot: false } }));
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(false);
+		});
+
+		it('in Auto mode, only the slot whose own ally really has the ability gets the flag — never both team members', () => {
+			const holder = buildSlot({ speciesName: 'Dragonite', moveNames: ['Dragon Claw'] });
+			holder.ability = 'Power Spot';
+			const nonHolder = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			// nonHolder's own ally is `holder` (has Power Spot); holder's own
+			// ally is `nonHolder` (does not) — the two attackers on this team
+			// must get different attackerSide.isPowerSpot values from Auto.
+			const sides = sidesOf([holder, nonHolder], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf());
+			const holderRow = attackers.find((r) => r.attacker === holder)!.rows[0];
+			const nonHolderRow = attackers.find((r) => r.attacker === nonHolder)!.rows[0];
+
+			expect(nonHolderRow.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(true);
+			expect(holderRow.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(false);
+		});
+
+		it('defaults every flag off when allySupport is omitted entirely', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Dragonite' });
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
 
 			const attackers = buildDamageMatrix(sides);
 			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
 
-			expect(row.cells[0].damage!.result.field.attackerSide.isSteelySpirit).toBe(true);
+			expect(row.cells[0].damage!.result.field.attackerSide.isHelpingHand).toBe(false);
+		});
+	});
+
+	describe('field conditions: weather and terrain (#24)', () => {
+		it('applies the shared weather/terrain identically to both directions of the matchup', () => {
+			const a = buildSlot({ speciesName: 'Barraskewda', moveNames: ['Liquidation'] });
+			const b = buildSlot({ speciesName: 'Snorlax', moveNames: ['Tackle'] });
+			const sides = sidesOf([a, new TeamSlot()], [b, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), {
+				weather: 'Rain',
+				terrain: null
+			});
+			const aRow = attackers.find((r) => r.attacker === a)!.rows[0];
+			const bRow = attackers.find((r) => r.attacker === b)!.rows[0];
+
+			expect(aRow.cells[0].damage!.result.field.weather).toBe('Rain');
+			expect(bRow.cells[0].damage!.result.field.weather).toBe('Rain');
+		});
+
+		it('applies no weather/terrain when fieldConditions is omitted', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.weather).toBeUndefined();
+			expect(row.cells[0].damage!.result.field.terrain).toBeUndefined();
 		});
 	});
 });

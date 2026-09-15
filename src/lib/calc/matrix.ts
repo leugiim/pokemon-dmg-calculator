@@ -1,4 +1,10 @@
-import type { TeamId, TeamSlot } from '../stores/team.svelte';
+import {
+	defaultTeamAllySupport,
+	type TeamAllySupport,
+	type TeamId,
+	type TeamSlot
+} from '../stores/team.svelte';
+import { defaultFieldConditions, type FieldConditions } from '../stores/field.svelte';
 import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveItem } from './moves';
 import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
 
@@ -56,12 +62,19 @@ function pairings(slots: [TeamSlot, TeamSlot]): [attacker: TeamSlot, ally: TeamS
  * index. `opponentAllies` maps each of `opponents` to its own ally (the
  * other slot of the opposing side) — needed to derive each cell's
  * `defenderSide` ally-support flags (Friend Guard, ADR-0003, #13).
+ * `ownTeamSupport`/`opponentTeamSupport` are the attacker's own and the
+ * opposing team's shared manual ally-support overrides, respectively;
+ * `fieldConditions` is the shared weather/terrain (#24), identical for
+ * every cell regardless of which side is attacking.
  */
 function buildRows(
 	attacker: TeamSlot,
 	ally: TeamSlot,
 	opponents: TeamSlot[],
-	opponentAllies: Map<TeamSlot, TeamSlot>
+	opponentAllies: Map<TeamSlot, TeamSlot>,
+	ownTeamSupport: TeamAllySupport,
+	opponentTeamSupport: TeamAllySupport,
+	fieldConditions: FieldConditions
 ): DamageMatrixRow[] {
 	return attacker.moves.flatMap((move, moveIndex) => {
 		if (move === null || isAllyOnlyTarget(move)) return [];
@@ -69,37 +82,43 @@ function buildRows(
 		const { isCrit, hits } = attacker.moveOptions[moveIndex];
 		const damaging = hasDamageComponent(move);
 		const isAllAdjacentMove = isAllAdjacentTarget(move);
+		const baseOptions: DamageOptions = {
+			isCrit,
+			hits: hits ?? undefined,
+			attackerAlly: ally,
+			attackerAllySupport: ownTeamSupport,
+			weather: fieldConditions.weather ?? undefined,
+			terrain: fieldConditions.terrain ?? undefined
+		};
 
 		return [
 			{
 				move,
 				moveIndex,
-				cells: opponents.map((target) => {
-					const options: DamageOptions = {
-						isCrit,
-						hits: hits ?? undefined,
-						attackerAlly: ally,
-						defenderAlly: opponentAllies.get(target)
-					};
-					return {
-						target,
-						damage: damaging ? computeDamage(attacker, move, target, options) : null
-					};
-				}),
+				cells: opponents.map((target) => ({
+					target,
+					damage: damaging
+						? computeDamage(attacker, move, target, {
+								...baseOptions,
+								defenderAlly: opponentAllies.get(target),
+								defenderAllySupport: opponentTeamSupport
+							})
+						: null
+				})),
 				isAllAdjacentMove,
 				// The attacker's ally is also the target of this cell, and still
 				// the source of attackerSide's support (Power Spot et al. boost a
 				// hit against the ally itself just as they would against an
-				// opponent) — its own defenderSide ally is the attacker (a
-				// Friend-Guard-holding attacker reduces damage it deals its own
-				// ally, since Friend Guard only ever exempts the holder itself).
+				// opponent) — its own defenderSide ally is the attacker, on the
+				// *same* team as attacker/ally (a Friend-Guard-holding attacker
+				// reduces damage it deals its own ally, since Friend Guard only
+				// ever exempts the holder itself), so it shares `ownTeamSupport`.
 				allyDamage:
 					damaging && isAllAdjacentMove && ally.species
 						? computeDamage(attacker, move, ally, {
-								isCrit,
-								hits: hits ?? undefined,
-								attackerAlly: ally,
-								defenderAlly: attacker
+								...baseOptions,
+								defenderAlly: attacker,
+								defenderAllySupport: ownTeamSupport
 							})
 						: null
 			}
@@ -122,14 +141,24 @@ function buildRows(
  * an attacker with one but no opponent picked yet still gets a (rowless
  * or column-less) entry — the caller decides how to render that, rather
  * than this function guessing at a placeholder.
+ *
+ * `allySupport`/`fieldConditions` default to "no overrides, no weather, no
+ * terrain" when omitted — every existing caller that doesn't care about
+ * ally support or field conditions keeps working unchanged.
  */
 export function buildDamageMatrix(
-	sides: Record<TeamId, [TeamSlot, TeamSlot]>
+	sides: Record<TeamId, [TeamSlot, TeamSlot]>,
+	allySupport: Record<TeamId, TeamAllySupport> = {
+		teamA: defaultTeamAllySupport(),
+		teamB: defaultTeamAllySupport()
+	},
+	fieldConditions: FieldConditions = defaultFieldConditions()
 ): DamageMatrixAttacker[] {
 	const attackers: DamageMatrixAttacker[] = [];
 
 	for (const teamId of ['teamA', 'teamB'] as TeamId[]) {
-		const opponentSlots = sides[OTHER_TEAM[teamId]];
+		const otherTeamId = OTHER_TEAM[teamId];
+		const opponentSlots = sides[otherTeamId];
 		const opponentAllies = new Map(pairings(opponentSlots));
 		const opponents = opponentSlots.filter((slot) => slot.species);
 
@@ -139,7 +168,15 @@ export function buildDamageMatrix(
 			attackers.push({
 				attacker,
 				opponents,
-				rows: buildRows(attacker, ally, opponents, opponentAllies)
+				rows: buildRows(
+					attacker,
+					ally,
+					opponents,
+					opponentAllies,
+					allySupport[teamId],
+					allySupport[otherTeamId],
+					fieldConditions
+				)
 			});
 		}
 	}

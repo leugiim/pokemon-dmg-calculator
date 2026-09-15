@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TeamSlot } from '$lib/stores/team.svelte';
+import { defaultTeamAllySupport, TeamSlot, type TeamAllySupport } from '$lib/stores/team.svelte';
 import {
 	attackerSideFlags,
 	defenderSideFlags,
@@ -8,6 +8,10 @@ import {
 	STATIC_ALLY_SUPPORT_FLAGS,
 	type StaticAllySupportFlag
 } from '$lib/calc/allySupport';
+
+function teamSupport(overrides: Partial<TeamAllySupport> = {}): TeamAllySupport {
+	return { ...defaultTeamAllySupport(), ...overrides };
+}
 
 describe('staticAllySupportAbility', () => {
 	it.each([
@@ -31,7 +35,27 @@ describe('staticAllySupportAbility', () => {
 
 describe('providesStaticSupport', () => {
 	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
-		'auto-derives %s from a matching ability when no override is set',
+		'auto-derives %s from a matching ability when no team override is set',
+		(flag) => {
+			const slot = new TeamSlot();
+			slot.ability = staticAllySupportAbility(flag);
+
+			expect(providesStaticSupport(slot, flag, teamSupport())).toBe(true);
+		}
+	);
+
+	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
+		'is false for %s when the ability does not match and no team override is set',
+		(flag) => {
+			const slot = new TeamSlot();
+			slot.ability = 'Levitate';
+
+			expect(providesStaticSupport(slot, flag, teamSupport())).toBe(false);
+		}
+	);
+
+	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
+		'falls back to the plain ability check when no teamSupport is passed at all',
 		(flag) => {
 			const slot = new TeamSlot();
 			slot.ability = staticAllySupportAbility(flag);
@@ -41,46 +65,47 @@ describe('providesStaticSupport', () => {
 	);
 
 	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
-		'is false for %s when the ability does not match and no override is set',
+		'lets a team override force %s on despite a non-matching ability',
 		(flag) => {
 			const slot = new TeamSlot();
 			slot.ability = 'Levitate';
 
-			expect(providesStaticSupport(slot, flag)).toBe(false);
+			expect(providesStaticSupport(slot, flag, teamSupport({ [flag]: true }))).toBe(true);
 		}
 	);
 
 	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
-		'lets a manual override force %s on despite a non-matching ability',
-		(flag) => {
-			const slot = new TeamSlot();
-			slot.ability = 'Levitate';
-			slot.allySupportOverrides[flag] = true;
-
-			expect(providesStaticSupport(slot, flag)).toBe(true);
-		}
-	);
-
-	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
-		'lets a manual override force %s off despite a matching ability',
+		'lets a team override force %s off despite a matching ability',
 		(flag) => {
 			const slot = new TeamSlot();
 			slot.ability = staticAllySupportAbility(flag);
-			slot.allySupportOverrides[flag] = false;
 
-			expect(providesStaticSupport(slot, flag)).toBe(false);
+			expect(providesStaticSupport(slot, flag, teamSupport({ [flag]: false }))).toBe(false);
+		}
+	);
+
+	it.each(STATIC_ALLY_SUPPORT_FLAGS)(
+		'applies %s to the correct ally only, not to a teammate who lacks the ability',
+		(flag) => {
+			const holder = new TeamSlot();
+			holder.ability = staticAllySupportAbility(flag);
+			const other = new TeamSlot();
+			other.ability = 'Levitate';
+			const support = teamSupport();
+
+			expect(providesStaticSupport(holder, flag, support)).toBe(true);
+			expect(providesStaticSupport(other, flag, support)).toBe(false);
 		}
 	);
 });
 
 describe('attackerSideFlags', () => {
-	it('derives isBattery, isPowerSpot, isSteelySpirit from the ally ability, and the manual isHelpingHand/isTailwind toggles', () => {
+	it('derives isBattery, isPowerSpot, isSteelySpirit from the ally ability, and the team-wide isHelpingHand/isTailwind toggles', () => {
 		const ally = new TeamSlot();
 		ally.ability = 'Power Spot';
-		ally.providesHelpingHand = true;
-		ally.providesTailwind = true;
+		const support = teamSupport({ helpingHand: true, tailwind: true });
 
-		expect(attackerSideFlags(ally)).toEqual({
+		expect(attackerSideFlags(ally, support)).toEqual({
 			isBattery: false,
 			isPowerSpot: true,
 			isSteelySpirit: false,
@@ -93,7 +118,20 @@ describe('attackerSideFlags', () => {
 		const ally = new TeamSlot();
 		ally.ability = 'Friend Guard';
 
-		expect(attackerSideFlags(ally)).not.toHaveProperty('isFriendGuard');
+		expect(attackerSideFlags(ally, teamSupport())).not.toHaveProperty('isFriendGuard');
+	});
+
+	it('defaults every flag to false/off when no teamSupport is passed at all', () => {
+		const ally = new TeamSlot();
+		ally.ability = 'Levitate';
+
+		expect(attackerSideFlags(ally)).toEqual({
+			isBattery: false,
+			isPowerSpot: false,
+			isSteelySpirit: false,
+			isHelpingHand: false,
+			isTailwind: false
+		});
 	});
 });
 
@@ -102,13 +140,22 @@ describe('defenderSideFlags', () => {
 		const ally = new TeamSlot();
 		ally.ability = 'Friend Guard';
 
-		expect(defenderSideFlags(ally)).toEqual({ isFriendGuard: true });
+		expect(defenderSideFlags(ally, teamSupport())).toEqual({ isFriendGuard: true });
 	});
 
 	it('is false when the ally does not have Friend Guard and no override forces it', () => {
 		const ally = new TeamSlot();
 		ally.ability = 'Levitate';
 
-		expect(defenderSideFlags(ally)).toEqual({ isFriendGuard: false });
+		expect(defenderSideFlags(ally, teamSupport())).toEqual({ isFriendGuard: false });
+	});
+
+	it('lets the team override force Friend Guard on for the whole team', () => {
+		const ally = new TeamSlot();
+		ally.ability = 'Levitate';
+
+		expect(defenderSideFlags(ally, teamSupport({ friendGuard: true }))).toEqual({
+			isFriendGuard: true
+		});
 	});
 });

@@ -42,22 +42,40 @@ function defaultMoveOptionsSlots(): MoveOptionsSlots {
 }
 
 /**
- * A slot's manual overrides for the four ally-support flags tied to a
- * fixed ability (Friend Guard, Battery, Power Spot, Steely Spirit) — `null`
- * (the default) auto-derives from this slot's own `ability`; `true`/`false`
- * forces the flag on or off regardless of the actual ability, for testing
- * a hypothetical (ADR-0003, #13). See `allySupport.ts` for how these
- * combine with `ability` into an effective flag.
+ * A team's shared ally-support state (ADR-0003, #13) — one set of
+ * toggles per `TeamId`, not per `TeamSlot`: these six flags describe
+ * conditions on the *side*, not a specific Pokémon, so a manual override
+ * applies to the whole team at once rather than needing to be set (and kept
+ * in sync) on each of its two slots separately.
+ *
+ * `friendGuard`/`battery`/`powerSpot`/`steelySpirit` are `null` (the
+ * default) to auto-derive from whichever slot's own `ability` actually
+ * grants it — auto mode still only credits the one real ally that has it,
+ * never both team members, see `allySupport.ts`'s `providesStaticSupport`
+ * — or `true`/`false` to force the flag on or off for the whole team
+ * regardless of any slot's actual ability, for testing a hypothetical.
+ * `helpingHand`/`tailwind` have no static data source at all (they depend
+ * on an action taken that turn, not a fixed ability/item), so they're
+ * plain manual toggles, default off.
  */
-export interface StaticAllySupportOverrides {
+export interface TeamAllySupport {
 	friendGuard: boolean | null;
 	battery: boolean | null;
 	powerSpot: boolean | null;
 	steelySpirit: boolean | null;
+	helpingHand: boolean;
+	tailwind: boolean;
 }
 
-function defaultStaticAllySupportOverrides(): StaticAllySupportOverrides {
-	return { friendGuard: null, battery: null, powerSpot: null, steelySpirit: null };
+export function defaultTeamAllySupport(): TeamAllySupport {
+	return {
+		friendGuard: null,
+		battery: null,
+		powerSpot: null,
+		steelySpirit: null,
+		helpingHand: false,
+		tailwind: false
+	};
 }
 
 /**
@@ -86,11 +104,6 @@ export class TeamSlot {
 	statPoints = $state<StatPoints>(emptyStatPoints());
 	moves = $state<MoveSlots>(emptyMoves());
 	moveOptions = $state<MoveOptionsSlots>(defaultMoveOptionsSlots());
-	/** Manual overrides for the support this slot provides its ally (ADR-0003, #13). */
-	allySupportOverrides = $state<StaticAllySupportOverrides>(defaultStaticAllySupportOverrides());
-	/** Manual-only ally support this slot provides its ally — no static data source (ADR-0003, #13). */
-	providesHelpingHand = $state(false);
-	providesTailwind = $state(false);
 
 	get species(): SpeciesItem | null {
 		return this.#species;
@@ -98,11 +111,11 @@ export class TeamSlot {
 
 	/**
 	 * Switching to a genuinely different Pokémon voids the item, nature,
-	 * stat points, moves, per-move Damage Matrix overrides (assume-crit,
-	 * hit-count), and ally-support overrides chosen for the previous one.
-	 * Switching formes within the same family (e.g. into or out of a Mega
-	 * Evolution) only changes what its base stats (and the sprite/types
-	 * derived from them) are — the rest of the build carries over.
+	 * stat points, moves, and per-move Damage Matrix overrides (assume-crit,
+	 * hit-count) chosen for the previous one. Switching formes within the
+	 * same family (e.g. into or out of a Mega Evolution) only changes what
+	 * its base stats (and the sprite/types derived from them) are — the
+	 * rest of the build carries over.
 	 *
 	 * Ability is the one exception: it's voided on *any* species change,
 	 * same family or not, since a different forme can have a wholly
@@ -120,9 +133,6 @@ export class TeamSlot {
 			this.statPoints = emptyStatPoints();
 			this.moves = emptyMoves();
 			this.moveOptions = defaultMoveOptionsSlots();
-			this.allySupportOverrides = defaultStaticAllySupportOverrides();
-			this.providesHelpingHand = false;
-			this.providesTailwind = false;
 		}
 	}
 
@@ -157,3 +167,14 @@ export const teamA = $state(createSide());
 export const teamB = $state(createSide());
 
 export const sides: Record<TeamId, [TeamSlot, TeamSlot]> = { teamA, teamB };
+
+/** Team A's shared ally-support toggles (ADR-0003, #13). */
+export const teamAAllySupport = $state(defaultTeamAllySupport());
+
+/** Team B's shared ally-support toggles (ADR-0003, #13). */
+export const teamBAllySupport = $state(defaultTeamAllySupport());
+
+export const allySupport: Record<TeamId, TeamAllySupport> = {
+	teamA: teamAAllySupport,
+	teamB: teamBAllySupport
+};

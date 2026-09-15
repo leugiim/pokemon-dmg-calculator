@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { allSpecies } from '$lib/calc/generation';
 import { allMoves } from '$lib/calc/moves';
-import { TeamSlot } from '$lib/stores/team.svelte';
+import { defaultTeamAllySupport, TeamSlot } from '$lib/stores/team.svelte';
 
 function species(name: string) {
 	return allSpecies.find((s) => s.name === name)!;
@@ -68,50 +68,27 @@ describe('TeamSlot', () => {
 			expect(slot.moveOptions[0]).toEqual({ isCrit: true, hits: null });
 		});
 	});
+});
 
-	describe('ally support defaults and reset (ADR-0003, #13)', () => {
-		it('starts with no static overrides and both manual toggles off', () => {
-			const slot = new TeamSlot();
-
-			expect(slot.allySupportOverrides).toEqual({
-				friendGuard: null,
-				battery: null,
-				powerSpot: null,
-				steelySpirit: null
-			});
-			expect(slot.providesHelpingHand).toBe(false);
-			expect(slot.providesTailwind).toBe(false);
+describe('defaultTeamAllySupport (ADR-0003, #13)', () => {
+	it('starts with no static overrides and both manual toggles off', () => {
+		expect(defaultTeamAllySupport()).toEqual({
+			friendGuard: null,
+			battery: null,
+			powerSpot: null,
+			steelySpirit: null,
+			helpingHand: false,
+			tailwind: false
 		});
+	});
 
-		it('resets static overrides and manual toggles when switching to a genuinely different Pokemon', () => {
-			const slot = new TeamSlot();
-			slot.species = species('Garchomp');
-			slot.allySupportOverrides.friendGuard = true;
-			slot.providesHelpingHand = true;
-			slot.providesTailwind = true;
+	it('returns a fresh object each call, so two teams never share state', () => {
+		const teamA = defaultTeamAllySupport();
+		const teamB = defaultTeamAllySupport();
+		teamA.friendGuard = true;
+		teamA.helpingHand = true;
 
-			slot.species = species('Snorlax');
-
-			expect(slot.allySupportOverrides).toEqual({
-				friendGuard: null,
-				battery: null,
-				powerSpot: null,
-				steelySpirit: null
-			});
-			expect(slot.providesHelpingHand).toBe(false);
-			expect(slot.providesTailwind).toBe(false);
-		});
-
-		it('carries ally support overrides over when switching formes within the same family', () => {
-			const slot = new TeamSlot();
-			slot.species = species('Charizard');
-			slot.allySupportOverrides.battery = true;
-			slot.providesTailwind = true;
-
-			slot.species = species('Charizard-Mega-X');
-
-			expect(slot.allySupportOverrides.battery).toBe(true);
-			expect(slot.providesTailwind).toBe(true);
-		});
+		expect(teamB.friendGuard).toBeNull();
+		expect(teamB.helpingHand).toBe(false);
 	});
 });

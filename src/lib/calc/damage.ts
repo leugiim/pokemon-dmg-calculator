@@ -1,7 +1,8 @@
 import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smogon/calc';
 import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
-import type { TeamSlot } from '../stores/team.svelte';
+import type { TeamAllySupport, TeamSlot } from '../stores/team.svelte';
+import type { Terrain, Weather } from '../stores/field.svelte';
 import type { MoveItem } from './moves';
 import { attackerSideFlags, defenderSideFlags } from './allySupport';
 
@@ -65,18 +66,32 @@ export interface DamageOptions {
 	isCrit?: boolean;
 	hits?: number;
 	/**
-	 * The attacker's own ally, used to derive `attackerSide`'s Battery,
-	 * Power Spot, Steely Spirit, Helping Hand and Tailwind flags (ADR-0003,
-	 * #13). Omitted entirely — not just left with no support active — when
-	 * a caller has no meaningful ally to pass (e.g. a lone on-demand
-	 * calculation with nothing to derive from).
+	 * The attacker's own ally, used (together with `attackerAllySupport`)
+	 * to derive `attackerSide`'s Battery, Power Spot, Steely Spirit,
+	 * Helping Hand and Tailwind flags (ADR-0003, #13). Omitted entirely —
+	 * not just left with no support active — when a caller has no
+	 * meaningful ally to pass (e.g. a lone on-demand calculation with
+	 * nothing to derive from).
 	 */
 	attackerAlly?: TeamSlot;
 	/**
-	 * The target's own ally, used to derive `defenderSide`'s Friend Guard
-	 * flag (ADR-0003, #13). See `attackerAlly`.
+	 * `attackerAlly`'s own team's shared manual ally-support overrides
+	 * (ADR-0003, #13) — omit to fall back to pure ability-based
+	 * auto-derivation with no override capability at all.
+	 */
+	attackerAllySupport?: TeamAllySupport;
+	/**
+	 * The target's own ally, used (together with `defenderAllySupport`) to
+	 * derive `defenderSide`'s Friend Guard flag (ADR-0003, #13). See
+	 * `attackerAlly`.
 	 */
 	defenderAlly?: TeamSlot;
+	/** `defenderAlly`'s own team's shared manual ally-support overrides. See `attackerAllySupport`. */
+	defenderAllySupport?: TeamAllySupport;
+	/** Field-wide weather (#24) — shared by both sides, unlike ally support. */
+	weather?: Weather;
+	/** Field-wide terrain (#24). See `weather`. */
+	terrain?: Terrain;
 }
 
 function toSmogonMove(move: MoveItem, attacker: TeamSlot, options: DamageOptions = {}): Move {
@@ -103,10 +118,10 @@ function toPercent(damage: number, maxHP: number): string {
 /**
  * Computes damage for one (attacker, move, target) triple. Always uses a
  * `gameType: 'Doubles'` field — this app never models Singles — even
- * though not every doubles-specific field flag (Follow Me redirection,
- * spread damage, ...) is wired up yet. `options` layers the
- * calculation-time overrides callers opt into per move (assume-crit, a
- * manual multi-hit count, ally support) on top of the move/attacker's own
+ * though some doubles-specific mechanics (Follow Me redirection, spread
+ * damage, ...) still aren't wired up. `options` layers the calculation-time
+ * overrides callers opt into per move (assume-crit, a manual multi-hit
+ * count, ally support, weather, terrain) on top of the move/attacker's own
  * data — see `DamageOptions`.
  */
 export function computeDamage(
@@ -120,8 +135,14 @@ export function computeDamage(
 	const smogonMove = toSmogonMove(move, attacker, options);
 	const field = new Field({
 		gameType: 'Doubles',
-		attackerSide: options.attackerAlly ? attackerSideFlags(options.attackerAlly) : undefined,
-		defenderSide: options.defenderAlly ? defenderSideFlags(options.defenderAlly) : undefined
+		weather: options.weather,
+		terrain: options.terrain,
+		attackerSide: options.attackerAlly
+			? attackerSideFlags(options.attackerAlly, options.attackerAllySupport)
+			: undefined,
+		defenderSide: options.defenderAlly
+			? defenderSideFlags(options.defenderAlly, options.defenderAllySupport)
+			: undefined
 	});
 
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);

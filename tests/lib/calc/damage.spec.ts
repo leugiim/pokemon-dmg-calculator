@@ -4,7 +4,7 @@ import { GEN_NUM, allSpecies } from '$lib/calc/generation';
 import { allNatures, calcChampionsStat, STAT_ORDER, type NatureName } from '$lib/calc/format';
 import { allItems } from '$lib/calc/items';
 import { allMoves } from '$lib/calc/moves';
-import { TeamSlot } from '$lib/stores/team.svelte';
+import { defaultTeamAllySupport, TeamSlot } from '$lib/stores/team.svelte';
 import { computeDamage, toSmogonPokemon } from '$lib/calc/damage';
 
 function nature(name: NatureName) {
@@ -453,7 +453,7 @@ describe('computeDamage', () => {
 			expect(result.field.defenderSide.isFriendGuard).toBe(false);
 		});
 
-		it('lets a manual override on attackerAlly force Battery on for a Special move despite a non-matching ability', () => {
+		it('lets a team-wide override force Battery on for a Special move despite no ally actually having it', () => {
 			const attacker = buildSlot({
 				speciesName: 'Garchomp',
 				ability: 'Rough Skin',
@@ -468,7 +468,6 @@ describe('computeDamage', () => {
 				statPoints: {},
 				moveNames: []
 			});
-			ally.allySupportOverrides.battery = true;
 			const defender = buildSlot({
 				speciesName: 'Snorlax',
 				ability: 'Immunity',
@@ -478,13 +477,14 @@ describe('computeDamage', () => {
 			});
 
 			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
-				attackerAlly: ally
+				attackerAlly: ally,
+				attackerAllySupport: { ...defaultTeamAllySupport(), battery: true }
 			});
 
 			expect(result.field.attackerSide.isBattery).toBe(true);
 		});
 
-		it('applies the manual-only Helping Hand toggle from attackerAlly', () => {
+		it('applies the team-wide Helping Hand toggle via attackerAllySupport', () => {
 			const attacker = buildSlot({
 				speciesName: 'Garchomp',
 				ability: 'Rough Skin',
@@ -499,7 +499,6 @@ describe('computeDamage', () => {
 				statPoints: {},
 				moveNames: []
 			});
-			ally.providesHelpingHand = true;
 			const defender = buildSlot({
 				speciesName: 'Snorlax',
 				ability: 'Immunity',
@@ -510,11 +509,128 @@ describe('computeDamage', () => {
 
 			const withoutSupport = computeDamage(attacker, attacker.moves[0]!, defender);
 			const withSupport = computeDamage(attacker, attacker.moves[0]!, defender, {
-				attackerAlly: ally
+				attackerAlly: ally,
+				attackerAllySupport: { ...defaultTeamAllySupport(), helpingHand: true }
 			});
 
 			expect(withSupport.result.field.attackerSide.isHelpingHand).toBe(true);
 			expect(withSupport.result.range()[1]).toBeGreaterThan(withoutSupport.result.range()[1]);
+		});
+
+		it("auto mode credits only the ally that really has the ability, never a teammate who doesn't (team-wide toggle scoping)", () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const holderAlly = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Power Spot',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+			const nonHolderAlly = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Multiscale',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+			const support = defaultTeamAllySupport();
+
+			const viaHolder = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAlly: holderAlly,
+				attackerAllySupport: support
+			});
+			const viaNonHolder = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAlly: nonHolderAlly,
+				attackerAllySupport: support
+			});
+
+			expect(viaHolder.result.field.attackerSide.isPowerSpot).toBe(true);
+			expect(viaNonHolder.result.field.attackerSide.isPowerSpot).toBe(false);
+		});
+	});
+
+	describe('field conditions: weather and terrain (#24)', () => {
+		it('applies no weather/terrain when omitted', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+			expect(result.field.weather).toBeUndefined();
+			expect(result.field.terrain).toBeUndefined();
+		});
+
+		it('boosts a Water-type move under Rain', () => {
+			const attacker = buildSlot({
+				speciesName: 'Barraskewda',
+				ability: 'Swift Swim',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Liquidation']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const noWeather = computeDamage(attacker, attacker.moves[0]!, defender);
+			const rain = computeDamage(attacker, attacker.moves[0]!, defender, { weather: 'Rain' });
+
+			expect(rain.result.field.weather).toBe('Rain');
+			expect(rain.result.range()[1]).toBeGreaterThan(noWeather.result.range()[1]);
+		});
+
+		it('boosts a Grass-type move on Grassy Terrain', () => {
+			const attacker = buildSlot({
+				speciesName: 'Rillaboom',
+				ability: 'Grassy Surge',
+				natureName: 'Adamant',
+				statPoints: {},
+				moveNames: ['Wood Hammer']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const noTerrain = computeDamage(attacker, attacker.moves[0]!, defender);
+			const grassyTerrain = computeDamage(attacker, attacker.moves[0]!, defender, {
+				terrain: 'Grassy'
+			});
+
+			expect(grassyTerrain.result.field.terrain).toBe('Grassy');
+			expect(grassyTerrain.result.range()[1]).toBeGreaterThan(noTerrain.result.range()[1]);
 		});
 	});
 });
