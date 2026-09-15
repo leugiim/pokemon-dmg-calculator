@@ -1,4 +1,12 @@
-import type { TeamId, TeamSlot } from '../stores/team.svelte';
+import {
+	defaultTeamAllySupport,
+	defaultTeamSideConditions,
+	type TeamAllySupport,
+	type TeamId,
+	type TeamSideConditions,
+	type TeamSlot
+} from '../stores/team.svelte';
+import { defaultFieldConditions, type FieldConditions } from '../stores/field.svelte';
 import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveItem } from './moves';
 import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
 
@@ -51,15 +59,66 @@ function pairings(slots: [TeamSlot, TeamSlot]): [attacker: TeamSlot, ally: TeamS
 	return slots.map((attacker, i) => [attacker, slots[1 - i]]);
 }
 
-/** One row per filled, non-ally-only move slot, keeping its original slot index. */
-function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): DamageMatrixRow[] {
+/**
+ * The other slot in a 2-slot side — every side is always exactly a pair, so
+ * "the ally" of either slot is always just the other one. Used to look up
+ * a given `target`'s own ally within its (unfiltered) side, for that
+ * target's own `defenderSide` ally-support flags (Friend Guard, ADR-0003,
+ * #13) — `target` itself always came from that same `pair` (see `opponents`
+ * in `buildDamageMatrix`), so this never falls through to the `: pair[0]`
+ * branch by mistake.
+ */
+function otherOf(pair: [TeamSlot, TeamSlot], slot: TeamSlot): TeamSlot {
+	return pair[0] === slot ? pair[1] : pair[0];
+}
+
+/** One team's shared ally-support and side-condition state, bundled so a caller can't transpose "this team" and "the opposing team" at a `buildRows` call site. */
+interface TeamContext {
+	support: TeamAllySupport;
+	sideConditions: TeamSideConditions;
+}
+
+/**
+ * One row per filled, non-ally-only move slot, keeping its original slot
+ * index. `opponentSlots` is the (unfiltered) 2-slot opposing side, used via
+ * `otherOf` to find each target's own ally. `own`/`opponent` are the
+ * attacker's own and the opposing team's shared state respectively;
+ * `fieldConditions` is the shared weather/terrain (#24), identical for
+ * every cell regardless of which side is attacking.
+ */
+function buildRows(
+	attacker: TeamSlot,
+	ally: TeamSlot,
+	opponents: TeamSlot[],
+	opponentSlots: [TeamSlot, TeamSlot],
+	own: TeamContext,
+	opponent: TeamContext,
+	fieldConditions: FieldConditions
+): DamageMatrixRow[] {
 	return attacker.moves.flatMap((move, moveIndex) => {
 		if (move === null || isAllyOnlyTarget(move)) return [];
 
 		const { isCrit, hits } = attacker.moveOptions[moveIndex];
-		const options: DamageOptions = { isCrit, hits: hits ?? undefined };
 		const damaging = hasDamageComponent(move);
 		const isAllAdjacentMove = isAllAdjacentTarget(move);
+		const baseOptions: DamageOptions = {
+			isCrit,
+			hits: hits ?? undefined,
+			attackerAlly: ally,
+			attackerAllySupport: own.support,
+			weather: fieldConditions.weather ?? undefined,
+			terrain: fieldConditions.terrain ?? undefined
+		};
+
+		/** `baseOptions` plus one target's own `defenderSide` context — shared by both branches below so they can't drift out of sync. */
+		function withDefender(defenderAlly: TeamSlot, context: TeamContext): DamageOptions {
+			return {
+				...baseOptions,
+				defenderAlly,
+				defenderAllySupport: context.support,
+				defenderSideConditions: context.sideConditions
+			};
+		}
 
 		return [
 			{
@@ -67,12 +126,26 @@ function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): D
 				moveIndex,
 				cells: opponents.map((target) => ({
 					target,
-					damage: damaging ? computeDamage(attacker, move, target, options) : null
+					damage: damaging
+						? computeDamage(
+								attacker,
+								move,
+								target,
+								withDefender(otherOf(opponentSlots, target), opponent)
+							)
+						: null
 				})),
 				isAllAdjacentMove,
+				// The attacker's ally is also the target of this cell, and still
+				// the source of attackerSide's support (Power Spot et al. boost a
+				// hit against the ally itself just as they would against an
+				// opponent) — its own defenderSide ally is the attacker, on the
+				// *same* team as attacker/ally (a Friend-Guard-holding attacker
+				// reduces damage it deals its own ally, since Friend Guard only
+				// ever exempts the holder itself), so it shares `own` too.
 				allyDamage:
 					damaging && isAllAdjacentMove && ally.species
-						? computeDamage(attacker, move, ally, options)
+						? computeDamage(attacker, move, ally, withDefender(attacker, own))
 						: null
 			}
 		];
@@ -94,19 +167,47 @@ function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): D
  * an attacker with one but no opponent picked yet still gets a (rowless
  * or column-less) entry — the caller decides how to render that, rather
  * than this function guessing at a placeholder.
+ *
+ * `allySupport`/`sideConditions`/`fieldConditions` default to "no
+ * overrides, no side conditions, no weather, no terrain" when omitted —
+ * every existing caller that doesn't care about any of these keeps working
+ * unchanged.
  */
 export function buildDamageMatrix(
-	sides: Record<TeamId, [TeamSlot, TeamSlot]>
+	sides: Record<TeamId, [TeamSlot, TeamSlot]>,
+	allySupport: Record<TeamId, TeamAllySupport> = {
+		teamA: defaultTeamAllySupport(),
+		teamB: defaultTeamAllySupport()
+	},
+	sideConditions: Record<TeamId, TeamSideConditions> = {
+		teamA: defaultTeamSideConditions(),
+		teamB: defaultTeamSideConditions()
+	},
+	fieldConditions: FieldConditions = defaultFieldConditions()
 ): DamageMatrixAttacker[] {
 	const attackers: DamageMatrixAttacker[] = [];
 
 	for (const teamId of ['teamA', 'teamB'] as TeamId[]) {
-		const opponents = sides[OTHER_TEAM[teamId]].filter((slot) => slot.species);
+		const otherTeamId = OTHER_TEAM[teamId];
+		const opponentSlots = sides[otherTeamId];
+		const opponents = opponentSlots.filter((slot) => slot.species);
+		const own: TeamContext = {
+			support: allySupport[teamId],
+			sideConditions: sideConditions[teamId]
+		};
+		const opponent: TeamContext = {
+			support: allySupport[otherTeamId],
+			sideConditions: sideConditions[otherTeamId]
+		};
 
 		for (const [attacker, ally] of pairings(sides[teamId])) {
 			if (!attacker.species) continue;
 
-			attackers.push({ attacker, opponents, rows: buildRows(attacker, ally, opponents) });
+			attackers.push({
+				attacker,
+				opponents,
+				rows: buildRows(attacker, ally, opponents, opponentSlots, own, opponent, fieldConditions)
+			});
 		}
 	}
 

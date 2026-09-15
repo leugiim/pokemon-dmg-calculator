@@ -58,7 +58,17 @@
 
 	const allyDamage: DamageDisplay | null = $derived.by(() => {
 		if (!expanded || !canShowAllyDamage) return null;
-		return computeDamage(attacker, selected!, ally);
+		// Same ally/defenderAlly pairing as matrix.ts's own attacker-vs-own-
+		// ally cell (ADR-0003, #13): the ally is both the target and the
+		// source of attackerSide's support, and its own defenderSide ally is
+		// the attacker itself. Deliberately NOT threading attackerAllySupport
+		// / defenderAllySupport (the team-wide manual overrides, #13) or
+		// weather/terrain (#24) here: `isAllyOnlyTarget` (this view's only
+		// caller) always selects a Status move with 0 base power, so no Side
+		// flag or field condition can ever change the 0 damage this computes
+		// — every one of those options would be dead weight. If a future
+		// ally-only move ever has a real damage component, revisit this.
+		return computeDamage(attacker, selected!, ally, { attackerAlly: ally, defenderAlly: attacker });
 	});
 </script>
 

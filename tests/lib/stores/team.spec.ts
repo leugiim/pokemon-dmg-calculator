@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { allSpecies } from '$lib/calc/generation';
 import { allMoves } from '$lib/calc/moves';
-import { TeamSlot } from '$lib/stores/team.svelte';
+import { defaultTeamAllySupport, TeamSlot } from '$lib/stores/team.svelte';
 
 function species(name: string) {
 	return allSpecies.find((s) => s.name === name)!;
@@ -67,5 +67,28 @@ describe('TeamSlot', () => {
 
 			expect(slot.moveOptions[0]).toEqual({ isCrit: true, hits: null });
 		});
+	});
+});
+
+describe('defaultTeamAllySupport (ADR-0003, #13)', () => {
+	it('starts with no static overrides and both manual toggles off', () => {
+		expect(defaultTeamAllySupport()).toEqual({
+			friendGuard: null,
+			battery: null,
+			powerSpot: null,
+			steelySpirit: null,
+			helpingHand: false,
+			tailwind: false
+		});
+	});
+
+	it('returns a fresh object each call, so two teams never share state', () => {
+		const teamA = defaultTeamAllySupport();
+		const teamB = defaultTeamAllySupport();
+		teamA.friendGuard = true;
+		teamA.helpingHand = true;
+
+		expect(teamB.friendGuard).toBeNull();
+		expect(teamB.helpingHand).toBe(false);
 	});
 });

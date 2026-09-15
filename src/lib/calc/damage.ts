@@ -1,8 +1,11 @@
 import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smogon/calc';
 import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
-import type { TeamSlot } from '../stores/team.svelte';
+import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
+import type { Terrain, Weather } from '../stores/field.svelte';
 import type { MoveItem } from './moves';
+import { attackerSideFlags, defenderSideFlags } from './allySupport';
+import { sideConditionFlags } from './sideConditions';
 
 /**
  * Converts one stat's Pokemon Champions Stat Point investment into the
@@ -63,6 +66,39 @@ export function toSmogonPokemon(slot: TeamSlot): Pokemon {
 export interface DamageOptions {
 	isCrit?: boolean;
 	hits?: number;
+	/**
+	 * The attacker's own ally, used to auto-derive `attackerSide`'s Battery,
+	 * Power Spot and Steely Spirit flags from its `ability` (ADR-0003, #13)
+	 * — Helping Hand/Tailwind and a manual static override come from
+	 * `attackerAllySupport` alone and apply even when this is omitted (e.g.
+	 * a lone on-demand calculation with no real ally object to pass).
+	 */
+	attackerAlly?: TeamSlot;
+	/**
+	 * `attackerAlly`'s own team's shared manual ally-support overrides
+	 * (ADR-0003, #13) — omit to fall back to pure ability-based
+	 * auto-derivation with no override capability at all.
+	 */
+	attackerAllySupport?: TeamAllySupport;
+	/**
+	 * The target's own ally, used (together with `defenderAllySupport`) to
+	 * derive `defenderSide`'s Friend Guard flag (ADR-0003, #13). See
+	 * `attackerAlly`.
+	 */
+	defenderAlly?: TeamSlot;
+	/** `defenderAlly`'s own team's shared manual ally-support overrides. See `attackerAllySupport`. */
+	defenderAllySupport?: TeamAllySupport;
+	/**
+	 * The target's own team's shared side conditions (screens, Stealth
+	 * Rock, Spikes) — merged onto `defenderSide` alongside Friend Guard.
+	 * Unlike ally support, these have no Auto mode, so there's nothing to
+	 * "omit to fall back to" — omitting this just means none are active.
+	 */
+	defenderSideConditions?: TeamSideConditions;
+	/** Field-wide weather (#24) — shared by both sides, unlike ally support. */
+	weather?: Weather;
+	/** Field-wide terrain (#24). See `weather`. */
+	terrain?: Terrain;
 }
 
 function toSmogonMove(move: MoveItem, attacker: TeamSlot, options: DamageOptions = {}): Move {
@@ -89,11 +125,11 @@ function toPercent(damage: number, maxHP: number): string {
 /**
  * Computes damage for one (attacker, move, target) triple. Always uses a
  * `gameType: 'Doubles'` field — this app never models Singles — even
- * though no doubles-specific field flags (Follow Me redirection, spread
- * damage, ally support, ...) are wired up yet. `options` layers the
- * calculation-time overrides callers opt into per move (assume-crit, a
- * manual multi-hit count) on top of the move/attacker's own data — see
- * `DamageOptions`.
+ * though some doubles-specific mechanics (Follow Me redirection, spread
+ * damage, ...) still aren't wired up. `options` layers the calculation-time
+ * overrides callers opt into per move (assume-crit, a manual multi-hit
+ * count, ally support, weather, terrain) on top of the move/attacker's own
+ * data — see `DamageOptions`.
  */
 export function computeDamage(
 	attacker: TeamSlot,
@@ -104,7 +140,25 @@ export function computeDamage(
 	const attackerMon = toSmogonPokemon(attacker);
 	const targetMon = toSmogonPokemon(target);
 	const smogonMove = toSmogonMove(move, attacker, options);
-	const field = new Field({ gameType: 'Doubles' });
+	// attackerSideFlags/defenderSideFlags/sideConditionFlags are called
+	// unconditionally — none of them require their TeamSlot/TeamAllySupport
+	// arguments to be present (see attackerSideFlags' own doc comment): a
+	// caller that passes attackerAllySupport with no attackerAlly still gets
+	// Helping Hand/Tailwind/a forced static override applied, rather than
+	// silently losing the whole side to all-false defaults. The two
+	// defenderSide producers currently return disjoint flag names
+	// (isFriendGuard vs. isProtected/isReflect/.../spikes) — if that ever
+	// stops being true, the second spread below would silently win.
+	const field = new Field({
+		gameType: 'Doubles',
+		weather: options.weather,
+		terrain: options.terrain,
+		attackerSide: attackerSideFlags(options.attackerAlly, options.attackerAllySupport),
+		defenderSide: {
+			...defenderSideFlags(options.defenderAlly, options.defenderAllySupport),
+			...(options.defenderSideConditions ? sideConditionFlags(options.defenderSideConditions) : {})
+		}
+	});
 
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);
 	const [min, max] = result.range();
