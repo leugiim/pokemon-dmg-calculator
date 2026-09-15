@@ -161,9 +161,10 @@ function buildRows(
  * `opponents`).
  *
  * Ally-only-target moves (Helping Hand, ...) are left out of every row
- * entirely — they have nowhere to hit an opponent at all, and get their
- * own on-demand view in `MoveSlot.svelte` instead (ADR-0001, see
- * `isAllyOnlyTarget`). An attacker with no species picked is skipped, and
+ * entirely — they have nowhere to hit an opponent at all, and (unlike
+ * `allAdjacent` moves) never deal damage at all either, so there's nothing
+ * to show for them anywhere (ADR-0001, see `isAllyOnlyTarget`). An
+ * attacker with no species picked is skipped, and
  * an attacker with one but no opponent picked yet still gets a (rowless
  * or column-less) entry — the caller decides how to render that, rather
  * than this function guessing at a placeholder.

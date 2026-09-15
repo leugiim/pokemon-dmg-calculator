@@ -28,7 +28,7 @@
 	<div class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[1fr_auto_1fr]">
 		<section class="flex flex-col gap-4">
 			{#each teamA as slot, i (i)}
-				<TeamSlotCard bind:slot={teamA[i]} ally={teamA[i === 0 ? 1 : 0]} />
+				<TeamSlotCard bind:slot={teamA[i]} />
 			{/each}
 			<AllySupportToggles bind:support={allySupport.teamA} slots={teamA} disabled={teamADisabled} />
 			<SideConditionsToggles bind:conditions={sideConditions.teamA} disabled={teamADisabled} />
@@ -38,7 +38,7 @@
 
 		<section class="flex flex-col gap-4">
 			{#each teamB as slot, i (i)}
-				<TeamSlotCard bind:slot={teamB[i]} ally={teamB[i === 0 ? 1 : 0]} />
+				<TeamSlotCard bind:slot={teamB[i]} />
 			{/each}
 			<AllySupportToggles bind:support={allySupport.teamB} slots={teamB} disabled={teamBDisabled} />
 			<SideConditionsToggles bind:conditions={sideConditions.teamB} disabled={teamBDisabled} />
