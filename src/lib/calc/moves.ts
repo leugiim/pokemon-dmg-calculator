@@ -42,8 +42,10 @@ const ALLY_ONLY_TARGET_MOVES = new Set([
  * True for a move that can only ever be aimed at the user's own ally —
  * never an opponent, and (unlike Acupressure's `adjacentAllyOrSelf`)
  * never the user itself either. Per ADR-0001, these moves are excluded
- * from the (future) Damage Matrix and get an on-demand friendly-fire view
- * instead.
+ * from the Damage Matrix entirely — every one of them is a Status move
+ * with no damage component at all (they're purely supportive, which is
+ * presumably *why* a move restricted to hitting only your own ally exists
+ * in the first place), so there's no number to show for them anywhere.
  */
 export function isAllyOnlyTarget(move: MoveItem): boolean {
 	return ALLY_ONLY_TARGET_MOVES.has(move.name);
@@ -58,10 +60,10 @@ export function isAllyOnlyTarget(move: MoveItem): boolean {
  * spread-damage modifier cares about — see `damage.ts`), so this can check
  * it directly instead of hand-curating a list.
  *
- * Its ally damage is shown inline in the Damage Matrix row instead of the
- * on-demand friendly-fire view `isAllyOnlyTarget` moves get (ADR-0001, #12).
- * `allAdjacentFoes` moves (Rock Slide) are deliberately excluded — they
- * never hit the ally at all.
+ * Its ally damage is shown inline in the Damage Matrix row, unlike
+ * `isAllyOnlyTarget` moves, which are excluded from the matrix entirely
+ * rather than shown anywhere (ADR-0001, #12). `allAdjacentFoes` moves
+ * (Rock Slide) are deliberately excluded — they never hit the ally at all.
  */
 export function isAllAdjacentTarget(move: MoveItem): boolean {
 	return move.target === 'allAdjacent';

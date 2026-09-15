@@ -26,7 +26,7 @@ A cell shows a %HP range (min-max) plus a KO chance annotation when relevant, ma
 **Friendly fire**:
 Damage calculated against a Pokémon's own ally rather than an opponent.
 
-- Moves that can **only** target the ally (`adjacentAlly`, `allies`) are shown separately from the Damage Matrix, on demand.
+- Moves that can **only** target the ally (`adjacentAlly`, `allies`) are excluded from the Damage Matrix entirely — every such move is Status with no damage component, so there's nothing to show. (An earlier on-demand "vs ally" view for these was removed once that turned out to always read 0%.)
 - Moves that hit the ally **simultaneously** with opponents in real play (`allAdjacent`, e.g. Earthquake) show that ally damage inline in the Damage Matrix itself — it isn't optional, since that's what using the move actually does.
 
 **Ally support**:

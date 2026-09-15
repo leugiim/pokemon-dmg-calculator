@@ -1,29 +1,19 @@
 <script lang="ts">
 	import type { MoveItem } from '$lib/calc/moves';
-	import { isAllyOnlyTarget } from '$lib/calc/moves';
-	import { computeDamage, type DamageDisplay } from '$lib/calc/damage';
 	import type { TeamSlot } from '$lib/stores/team.svelte';
-	import DamageResult from './DamageResult.svelte';
 	import MoveCategoryIcon from './MoveCategoryIcon.svelte';
 	import MoveCombobox from './MoveCombobox.svelte';
 	import TypeBadge from './TypeBadge.svelte';
-
-	const uid = $props.id();
-	const allyDamageId = `${uid}-ally-damage`;
 
 	let {
 		selected = $bindable(null),
 		disabled = false,
 		attacker,
-		ally,
 		moveIndex
 	}: {
 		selected?: MoveItem | null;
 		disabled?: boolean;
-		/** This move's owner — needed to compute ally damage on demand. */
 		attacker: TeamSlot;
-		/** `attacker`'s own ally (the other slot on the same side). */
-		ally: TeamSlot;
 		/** This slot's index within `attacker.moves` (0-3) — see the reset effect below. */
 		moveIndex: number;
 	} = $props();
@@ -40,35 +30,6 @@
 			previousSelected = selected;
 			attacker.resetMoveOptions(moveIndex);
 		}
-	});
-
-	// Moves that can only ever be aimed at the ally (adjacentAlly/allies)
-	// don't have anywhere else to show a damage number — they're excluded
-	// from the main Damage Matrix by design (ADR-0001) — so this is their
-	// one on-demand view. Needs the ally to have a species picked, same as
-	// every other damage computation in the app.
-	const canShowAllyDamage = $derived(
-		!!selected && isAllyOnlyTarget(selected) && !!attacker.species && !!ally.species
-	);
-
-	let expanded = $state(false);
-	$effect(() => {
-		if (!canShowAllyDamage) expanded = false;
-	});
-
-	const allyDamage: DamageDisplay | null = $derived.by(() => {
-		if (!expanded || !canShowAllyDamage) return null;
-		// Same ally/defenderAlly pairing as matrix.ts's own attacker-vs-own-
-		// ally cell (ADR-0003, #13): the ally is both the target and the
-		// source of attackerSide's support, and its own defenderSide ally is
-		// the attacker itself. Deliberately NOT threading attackerAllySupport
-		// / defenderAllySupport (the team-wide manual overrides, #13) or
-		// weather/terrain (#24) here: `isAllyOnlyTarget` (this view's only
-		// caller) always selects a Status move with 0 base power, so no Side
-		// flag or field condition can ever change the 0 damage this computes
-		// — every one of those options would be dead weight. If a future
-		// ally-only move ever has a real damage component, revisit this.
-		return computeDamage(attacker, selected!, ally, { attackerAlly: ally, defenderAlly: attacker });
 	});
 </script>
 
@@ -97,25 +58,5 @@
 		<span class="w-8 shrink-0 text-right text-[11px] font-semibold text-gray-500">
 			{selected?.basePower || '–'}
 		</span>
-		<div class="flex w-14 shrink-0 justify-center">
-			{#if canShowAllyDamage}
-				<button
-					type="button"
-					class="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-300 hover:bg-gray-700"
-					aria-expanded={expanded}
-					aria-controls={allyDamageId}
-					onclick={() => (expanded = !expanded)}
-				>
-					vs ally
-				</button>
-			{/if}
-		</div>
 	</div>
-	<!-- Kept in the DOM (just hidden) rather than an {#if} block, so the
-	     button's aria-controls always resolves to a real element. -->
-	<p id={allyDamageId} class="pl-1 text-[11px] text-gray-400" hidden={!allyDamage}>
-		{#if allyDamage}
-			vs ally: <DamageResult damage={allyDamage} />
-		{/if}
-	</p>
 </div>
