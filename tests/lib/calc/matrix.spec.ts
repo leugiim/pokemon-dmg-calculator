@@ -278,4 +278,85 @@ describe('buildDamageMatrix', () => {
 			expect(row.allyDamage!.result.move.isCrit).toBe(true);
 		});
 	});
+
+	describe('ally support (ADR-0003, #13)', () => {
+		it("boosts a matrix cell when the attacker's own ally has Power Spot", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Dragonite' });
+			ally.ability = 'Power Spot';
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.attackerSide.isPowerSpot).toBe(true);
+		});
+
+		it("reduces a matrix cell's damage when the target's own ally has Friend Guard", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const opponentAlly = buildSlot({ speciesName: 'Dragonite' });
+			opponentAlly.ability = 'Friend Guard';
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, opponentAlly]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.defenderSide.isFriendGuard).toBe(true);
+		});
+
+		it("applies the manual Helping Hand toggle from the attacker's own ally to a matrix cell", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Dragonite' });
+			ally.providesHelpingHand = true;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.attackerSide.isHelpingHand).toBe(true);
+		});
+
+		it("still applies the attacker's ally's support to the inline ally-damage cell of an allAdjacent move", () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			a2.ability = 'Power Spot';
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.allyDamage!.result.field.attackerSide.isPowerSpot).toBe(true);
+		});
+
+		it("applies the attacker's own Friend Guard to the damage it deals its own ally (an allAdjacent hit)", () => {
+			const a1 = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			a1.ability = 'Friend Guard';
+			const a2 = buildSlot({ speciesName: 'Dragonite' });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([a1, a2], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === a1)!.rows[0];
+
+			expect(row.allyDamage!.result.field.defenderSide.isFriendGuard).toBe(true);
+		});
+
+		it('lets a manual override on the ally force Steely Spirit on despite a non-matching ability', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Iron Head'] });
+			const ally = buildSlot({ speciesName: 'Dragonite' });
+			ally.ability = 'Multiscale';
+			ally.allySupportOverrides.steelySpirit = true;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.attackerSide.isSteelySpirit).toBe(true);
+		});
+	});
 });

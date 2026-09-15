@@ -42,6 +42,25 @@ function defaultMoveOptionsSlots(): MoveOptionsSlots {
 }
 
 /**
+ * A slot's manual overrides for the four ally-support flags tied to a
+ * fixed ability (Friend Guard, Battery, Power Spot, Steely Spirit) — `null`
+ * (the default) auto-derives from this slot's own `ability`; `true`/`false`
+ * forces the flag on or off regardless of the actual ability, for testing
+ * a hypothetical (ADR-0003, #13). See `allySupport.ts` for how these
+ * combine with `ability` into an effective flag.
+ */
+export interface StaticAllySupportOverrides {
+	friendGuard: boolean | null;
+	battery: boolean | null;
+	powerSpot: boolean | null;
+	steelySpirit: boolean | null;
+}
+
+function defaultStaticAllySupportOverrides(): StaticAllySupportOverrides {
+	return { friendGuard: null, battery: null, powerSpot: null, steelySpirit: null };
+}
+
+/**
  * The species' "family" root — the same for every forme of a given
  * Pokémon (Charizard, Charizard-Mega-X, and Charizard-Mega-Y all
  * resolve to `Charizard`), so switching between them can be told apart
@@ -67,6 +86,11 @@ export class TeamSlot {
 	statPoints = $state<StatPoints>(emptyStatPoints());
 	moves = $state<MoveSlots>(emptyMoves());
 	moveOptions = $state<MoveOptionsSlots>(defaultMoveOptionsSlots());
+	/** Manual overrides for the support this slot provides its ally (ADR-0003, #13). */
+	allySupportOverrides = $state<StaticAllySupportOverrides>(defaultStaticAllySupportOverrides());
+	/** Manual-only ally support this slot provides its ally — no static data source (ADR-0003, #13). */
+	providesHelpingHand = $state(false);
+	providesTailwind = $state(false);
 
 	get species(): SpeciesItem | null {
 		return this.#species;
@@ -74,11 +98,11 @@ export class TeamSlot {
 
 	/**
 	 * Switching to a genuinely different Pokémon voids the item, nature,
-	 * stat points, moves, and per-move Damage Matrix overrides (assume-crit,
-	 * hit-count) chosen for the previous one. Switching formes within the
-	 * same family (e.g. into or out of a Mega Evolution) only changes what
-	 * its base stats (and the sprite/types derived from them) are — the
-	 * rest of the build carries over.
+	 * stat points, moves, per-move Damage Matrix overrides (assume-crit,
+	 * hit-count), and ally-support overrides chosen for the previous one.
+	 * Switching formes within the same family (e.g. into or out of a Mega
+	 * Evolution) only changes what its base stats (and the sprite/types
+	 * derived from them) are — the rest of the build carries over.
 	 *
 	 * Ability is the one exception: it's voided on *any* species change,
 	 * same family or not, since a different forme can have a wholly
@@ -96,6 +120,9 @@ export class TeamSlot {
 			this.statPoints = emptyStatPoints();
 			this.moves = emptyMoves();
 			this.moveOptions = defaultMoveOptionsSlots();
+			this.allySupportOverrides = defaultStaticAllySupportOverrides();
+			this.providesHelpingHand = false;
+			this.providesTailwind = false;
 		}
 	}
 

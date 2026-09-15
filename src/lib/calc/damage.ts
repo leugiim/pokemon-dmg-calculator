@@ -3,6 +3,7 @@ import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
 import type { TeamSlot } from '../stores/team.svelte';
 import type { MoveItem } from './moves';
+import { attackerSideFlags, defenderSideFlags } from './allySupport';
 
 /**
  * Converts one stat's Pokemon Champions Stat Point investment into the
@@ -63,6 +64,19 @@ export function toSmogonPokemon(slot: TeamSlot): Pokemon {
 export interface DamageOptions {
 	isCrit?: boolean;
 	hits?: number;
+	/**
+	 * The attacker's own ally, used to derive `attackerSide`'s Battery,
+	 * Power Spot, Steely Spirit, Helping Hand and Tailwind flags (ADR-0003,
+	 * #13). Omitted entirely — not just left with no support active — when
+	 * a caller has no meaningful ally to pass (e.g. a lone on-demand
+	 * calculation with nothing to derive from).
+	 */
+	attackerAlly?: TeamSlot;
+	/**
+	 * The target's own ally, used to derive `defenderSide`'s Friend Guard
+	 * flag (ADR-0003, #13). See `attackerAlly`.
+	 */
+	defenderAlly?: TeamSlot;
 }
 
 function toSmogonMove(move: MoveItem, attacker: TeamSlot, options: DamageOptions = {}): Move {
@@ -89,11 +103,11 @@ function toPercent(damage: number, maxHP: number): string {
 /**
  * Computes damage for one (attacker, move, target) triple. Always uses a
  * `gameType: 'Doubles'` field — this app never models Singles — even
- * though no doubles-specific field flags (Follow Me redirection, spread
- * damage, ally support, ...) are wired up yet. `options` layers the
+ * though not every doubles-specific field flag (Follow Me redirection,
+ * spread damage, ...) is wired up yet. `options` layers the
  * calculation-time overrides callers opt into per move (assume-crit, a
- * manual multi-hit count) on top of the move/attacker's own data — see
- * `DamageOptions`.
+ * manual multi-hit count, ally support) on top of the move/attacker's own
+ * data — see `DamageOptions`.
  */
 export function computeDamage(
 	attacker: TeamSlot,
@@ -104,7 +118,11 @@ export function computeDamage(
 	const attackerMon = toSmogonPokemon(attacker);
 	const targetMon = toSmogonPokemon(target);
 	const smogonMove = toSmogonMove(move, attacker, options);
-	const field = new Field({ gameType: 'Doubles' });
+	const field = new Field({
+		gameType: 'Doubles',
+		attackerSide: options.attackerAlly ? attackerSideFlags(options.attackerAlly) : undefined,
+		defenderSide: options.defenderAlly ? defenderSideFlags(options.defenderAlly) : undefined
+	});
 
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);
 	const [min, max] = result.range();

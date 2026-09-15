@@ -334,4 +334,187 @@ describe('computeDamage', () => {
 
 		expect(result.move.hits).toBe(5);
 	});
+
+	describe('ally support (ADR-0003, #13)', () => {
+		it('applies no ally support flags when attackerAlly/defenderAlly are omitted', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+			expect(result.field.attackerSide.isPowerSpot).toBe(false);
+			expect(result.field.defenderSide.isFriendGuard).toBe(false);
+		});
+
+		it("boosts the attacker's damage when attackerAlly has Power Spot", () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const ally = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Power Spot',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const withoutSupport = computeDamage(attacker, attacker.moves[0]!, defender);
+			const withSupport = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAlly: ally
+			});
+
+			expect(withSupport.result.field.attackerSide.isPowerSpot).toBe(true);
+			expect(withSupport.result.range()[1]).toBeGreaterThan(withoutSupport.result.range()[1]);
+		});
+
+		it('reduces damage taken when defenderAlly has Friend Guard', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+			const defenderAlly = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Friend Guard',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+
+			const withoutSupport = computeDamage(attacker, attacker.moves[0]!, defender);
+			const withSupport = computeDamage(attacker, attacker.moves[0]!, defender, {
+				defenderAlly
+			});
+
+			expect(withSupport.result.field.defenderSide.isFriendGuard).toBe(true);
+			expect(withSupport.result.range()[1]).toBeLessThan(withoutSupport.result.range()[1]);
+		});
+
+		it('does not derive Power Spot support from defenderAlly, nor Friend Guard from attackerAlly', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+			const misplacedAlly = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Power Spot',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+				defenderAlly: misplacedAlly
+			});
+
+			expect(result.field.attackerSide.isPowerSpot).toBe(false);
+			expect(result.field.defenderSide.isFriendGuard).toBe(false);
+		});
+
+		it('lets a manual override on attackerAlly force Battery on for a Special move despite a non-matching ability', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Pulse']
+			});
+			const ally = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Levitate',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+			ally.allySupportOverrides.battery = true;
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAlly: ally
+			});
+
+			expect(result.field.attackerSide.isBattery).toBe(true);
+		});
+
+		it('applies the manual-only Helping Hand toggle from attackerAlly', () => {
+			const attacker = buildSlot({
+				speciesName: 'Garchomp',
+				ability: 'Rough Skin',
+				natureName: 'Jolly',
+				statPoints: {},
+				moveNames: ['Dragon Claw']
+			});
+			const ally = buildSlot({
+				speciesName: 'Dragonite',
+				ability: 'Multiscale',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: []
+			});
+			ally.providesHelpingHand = true;
+			const defender = buildSlot({
+				speciesName: 'Snorlax',
+				ability: 'Immunity',
+				natureName: 'Hardy',
+				statPoints: {},
+				moveNames: ['Tackle']
+			});
+
+			const withoutSupport = computeDamage(attacker, attacker.moves[0]!, defender);
+			const withSupport = computeDamage(attacker, attacker.moves[0]!, defender, {
+				attackerAlly: ally
+			});
+
+			expect(withSupport.result.field.attackerSide.isHelpingHand).toBe(true);
+			expect(withSupport.result.range()[1]).toBeGreaterThan(withoutSupport.result.range()[1]);
+		});
+	});
 });

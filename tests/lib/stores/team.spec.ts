@@ -68,4 +68,50 @@ describe('TeamSlot', () => {
 			expect(slot.moveOptions[0]).toEqual({ isCrit: true, hits: null });
 		});
 	});
+
+	describe('ally support defaults and reset (ADR-0003, #13)', () => {
+		it('starts with no static overrides and both manual toggles off', () => {
+			const slot = new TeamSlot();
+
+			expect(slot.allySupportOverrides).toEqual({
+				friendGuard: null,
+				battery: null,
+				powerSpot: null,
+				steelySpirit: null
+			});
+			expect(slot.providesHelpingHand).toBe(false);
+			expect(slot.providesTailwind).toBe(false);
+		});
+
+		it('resets static overrides and manual toggles when switching to a genuinely different Pokemon', () => {
+			const slot = new TeamSlot();
+			slot.species = species('Garchomp');
+			slot.allySupportOverrides.friendGuard = true;
+			slot.providesHelpingHand = true;
+			slot.providesTailwind = true;
+
+			slot.species = species('Snorlax');
+
+			expect(slot.allySupportOverrides).toEqual({
+				friendGuard: null,
+				battery: null,
+				powerSpot: null,
+				steelySpirit: null
+			});
+			expect(slot.providesHelpingHand).toBe(false);
+			expect(slot.providesTailwind).toBe(false);
+		});
+
+		it('carries ally support overrides over when switching formes within the same family', () => {
+			const slot = new TeamSlot();
+			slot.species = species('Charizard');
+			slot.allySupportOverrides.battery = true;
+			slot.providesTailwind = true;
+
+			slot.species = species('Charizard-Mega-X');
+
+			expect(slot.allySupportOverrides.battery).toBe(true);
+			expect(slot.providesTailwind).toBe(true);
+		});
+	});
 });

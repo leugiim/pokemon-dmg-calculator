@@ -58,7 +58,11 @@
 
 	const allyDamage: DamageDisplay | null = $derived.by(() => {
 		if (!expanded || !canShowAllyDamage) return null;
-		return computeDamage(attacker, selected!, ally);
+		// Same ally-support wiring as matrix.ts's own attacker-vs-own-ally
+		// cell (ADR-0003, #13): the ally is both the target and the source
+		// of attackerSide's support, and its own defenderSide ally is the
+		// attacker itself.
+		return computeDamage(attacker, selected!, ally, { attackerAlly: ally, defenderAlly: attacker });
 	});
 </script>
 

@@ -51,13 +51,22 @@ function pairings(slots: [TeamSlot, TeamSlot]): [attacker: TeamSlot, ally: TeamS
 	return slots.map((attacker, i) => [attacker, slots[1 - i]]);
 }
 
-/** One row per filled, non-ally-only move slot, keeping its original slot index. */
-function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): DamageMatrixRow[] {
+/**
+ * One row per filled, non-ally-only move slot, keeping its original slot
+ * index. `opponentAllies` maps each of `opponents` to its own ally (the
+ * other slot of the opposing side) — needed to derive each cell's
+ * `defenderSide` ally-support flags (Friend Guard, ADR-0003, #13).
+ */
+function buildRows(
+	attacker: TeamSlot,
+	ally: TeamSlot,
+	opponents: TeamSlot[],
+	opponentAllies: Map<TeamSlot, TeamSlot>
+): DamageMatrixRow[] {
 	return attacker.moves.flatMap((move, moveIndex) => {
 		if (move === null || isAllyOnlyTarget(move)) return [];
 
 		const { isCrit, hits } = attacker.moveOptions[moveIndex];
-		const options: DamageOptions = { isCrit, hits: hits ?? undefined };
 		const damaging = hasDamageComponent(move);
 		const isAllAdjacentMove = isAllAdjacentTarget(move);
 
@@ -65,14 +74,33 @@ function buildRows(attacker: TeamSlot, ally: TeamSlot, opponents: TeamSlot[]): D
 			{
 				move,
 				moveIndex,
-				cells: opponents.map((target) => ({
-					target,
-					damage: damaging ? computeDamage(attacker, move, target, options) : null
-				})),
+				cells: opponents.map((target) => {
+					const options: DamageOptions = {
+						isCrit,
+						hits: hits ?? undefined,
+						attackerAlly: ally,
+						defenderAlly: opponentAllies.get(target)
+					};
+					return {
+						target,
+						damage: damaging ? computeDamage(attacker, move, target, options) : null
+					};
+				}),
 				isAllAdjacentMove,
+				// The attacker's ally is also the target of this cell, and still
+				// the source of attackerSide's support (Power Spot et al. boost a
+				// hit against the ally itself just as they would against an
+				// opponent) — its own defenderSide ally is the attacker (a
+				// Friend-Guard-holding attacker reduces damage it deals its own
+				// ally, since Friend Guard only ever exempts the holder itself).
 				allyDamage:
 					damaging && isAllAdjacentMove && ally.species
-						? computeDamage(attacker, move, ally, options)
+						? computeDamage(attacker, move, ally, {
+								isCrit,
+								hits: hits ?? undefined,
+								attackerAlly: ally,
+								defenderAlly: attacker
+							})
 						: null
 			}
 		];
@@ -101,12 +129,18 @@ export function buildDamageMatrix(
 	const attackers: DamageMatrixAttacker[] = [];
 
 	for (const teamId of ['teamA', 'teamB'] as TeamId[]) {
-		const opponents = sides[OTHER_TEAM[teamId]].filter((slot) => slot.species);
+		const opponentSlots = sides[OTHER_TEAM[teamId]];
+		const opponentAllies = new Map(pairings(opponentSlots));
+		const opponents = opponentSlots.filter((slot) => slot.species);
 
 		for (const [attacker, ally] of pairings(sides[teamId])) {
 			if (!attacker.species) continue;
 
-			attackers.push({ attacker, opponents, rows: buildRows(attacker, ally, opponents) });
+			attackers.push({
+				attacker,
+				opponents,
+				rows: buildRows(attacker, ally, opponents, opponentAllies)
+			});
 		}
 	}
 
