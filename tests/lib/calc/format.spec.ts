@@ -5,8 +5,12 @@ import {
 	statPointBreakpoints,
 	totalStatPoints,
 	emptyStatPoints,
+	emptyStatBoosts,
+	boostedStat,
+	clampBoostStage,
 	MAX_SP_TOTAL,
 	MAX_SP_PER_STAT,
+	MAX_BOOST_STAGE,
 	type NatureName
 } from '$lib/calc/format';
 
@@ -80,5 +84,35 @@ describe('stat points', () => {
 		// You can't just max every stat (6 * 32 = 192) — the 66 total is
 		// what actually limits the allocation.
 		expect(MAX_SP_TOTAL).toBeLessThan(6 * MAX_SP_PER_STAT);
+	});
+});
+
+describe('stat stages', () => {
+	it('starts every boostable stat at 0', () => {
+		expect(emptyStatBoosts()).toEqual({ atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
+	});
+
+	it('clamps to the ±6 range real battles enforce', () => {
+		expect(clampBoostStage(9)).toBe(MAX_BOOST_STAGE);
+		expect(clampBoostStage(-9)).toBe(-MAX_BOOST_STAGE);
+		expect(clampBoostStage(3)).toBe(3);
+	});
+
+	it('leaves stage 0 untouched', () => {
+		expect(boostedStat(100, 0)).toBe(100);
+	});
+
+	it('matches the well-known modern (gen 3+) boost multipliers', () => {
+		// +1 = *1.5, +2 = *2, +6 = *4 (the "max boost" reference figure).
+		expect(boostedStat(100, 1)).toBe(150);
+		expect(boostedStat(100, 2)).toBe(200);
+		expect(boostedStat(100, 6)).toBe(400);
+		// -1 = *2/3, -6 = *2/8 (the "min boost" reference figure).
+		expect(boostedStat(100, -1)).toBe(66);
+		expect(boostedStat(100, -6)).toBe(25);
+	});
+
+	it('clamps an out-of-range stage before applying the multiplier', () => {
+		expect(boostedStat(100, 12)).toBe(boostedStat(100, MAX_BOOST_STAGE));
 	});
 });

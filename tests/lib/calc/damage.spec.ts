@@ -142,6 +142,41 @@ describe('toSmogonPokemon', () => {
 			calcChampionsStat(slot.species!.baseStats.atk, 'atk', 20, slot.nature)
 		);
 	});
+
+	it("carries the slot's own stat stages onto the built Pokemon", () => {
+		const slot = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Earthquake']
+		});
+		slot.boosts.atk = 2;
+		slot.boosts.spe = -1;
+
+		const mon = toSmogonPokemon(slot);
+
+		expect(mon.boosts.atk).toBe(2);
+		expect(mon.boosts.spe).toBe(-1);
+		expect(mon.boosts.def).toBe(0);
+	});
+
+	it("layers `boostOverrides` on top of the slot's own stages rather than replacing them wholesale", () => {
+		const slot = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: {},
+			moveNames: ['Earthquake']
+		});
+		slot.boosts.atk = 2;
+		slot.boosts.def = 1;
+
+		const mon = toSmogonPokemon(slot, { atk: -1 });
+
+		expect(mon.boosts.atk).toBe(-1);
+		expect(mon.boosts.def).toBe(1);
+	});
 });
 
 describe('computeDamage', () => {

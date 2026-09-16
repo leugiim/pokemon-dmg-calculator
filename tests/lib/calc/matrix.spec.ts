@@ -10,6 +10,7 @@ import {
 	type TeamSideConditions
 } from '$lib/stores/team.svelte';
 import { buildDamageMatrix } from '$lib/calc/matrix';
+import { defaultFieldConditions } from '$lib/stores/field.svelte';
 
 function species(name: string) {
 	return allSpecies.find((s) => s.name === name)!;
@@ -449,8 +450,8 @@ describe('buildDamageMatrix', () => {
 			const sides = sidesOf([a, new TeamSlot()], [b, new TeamSlot()]);
 
 			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
-				weather: 'Rain',
-				terrain: null
+				...defaultFieldConditions(),
+				weather: 'Rain'
 			});
 			const aRow = attackers.find((r) => r.attacker === a)!.rows[0];
 			const bRow = attackers.find((r) => r.attacker === b)!.rows[0];
@@ -469,6 +470,220 @@ describe('buildDamageMatrix', () => {
 
 			expect(row.cells[0].damage!.result.field.weather).toBeUndefined();
 			expect(row.cells[0].damage!.result.field.terrain).toBeUndefined();
+		});
+	});
+
+	describe('field conditions: gravity', () => {
+		it('applies the shared gravity flag identically to both directions of the matchup', () => {
+			const a = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			const b = buildSlot({ speciesName: 'Snorlax', moveNames: ['Tackle'] });
+			const sides = sidesOf([a, new TeamSlot()], [b, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
+				...defaultFieldConditions(),
+				gravity: true
+			});
+			const aRow = attackers.find((r) => r.attacker === a)!.rows[0];
+			const bRow = attackers.find((r) => r.attacker === b)!.rows[0];
+
+			expect(aRow.cells[0].damage!.result.field.isGravity).toBe(true);
+			expect(bRow.cells[0].damage!.result.field.isGravity).toBe(true);
+		});
+
+		it('lets a Ground-type move hit a pure Flying-type target only once gravity is active', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Earthquake'] });
+			const opponent = buildSlot({ speciesName: 'Tornadus' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const withoutGravity = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf());
+			const withGravity = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
+				...defaultFieldConditions(),
+				gravity: true
+			});
+
+			expect(
+				withoutGravity.find((r) => r.attacker === attacker)!.rows[0].cells[0].damage!.percentRange
+			).toBe('0.0 - 0.0');
+			expect(
+				withGravity.find((r) => r.attacker === attacker)!.rows[0].cells[0].damage!.percentRange
+			).not.toBe('0.0 - 0.0');
+		});
+
+		it('defaults gravity off when fieldConditions is omitted', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isGravity).toBe(false);
+		});
+	});
+
+	describe('Field abilities: Ruin/Fairy Aura, field-wide not per-team (CONTEXT.md)', () => {
+		it('in Auto mode, detects a Ruin ability anywhere on the field — including on the opposing side, unlike ally support', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const opponentAlly = buildSlot({ speciesName: 'Chien-Pao' });
+			opponentAlly.ability = 'Sword of Ruin';
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, opponentAlly]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf());
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isSwordOfRuin).toBe(true);
+		});
+
+		it('a manual override forces the flag on regardless of whether any Pokemon actually has the ability', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
+				...defaultFieldConditions(),
+				beadsOfRuin: true
+			});
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isBeadsOfRuin).toBe(true);
+		});
+
+		it('a manual override forces the flag off even when its holder is on the field', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Ting-Lu' });
+			ally.ability = 'Vessel of Ruin';
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
+				...defaultFieldConditions(),
+				vesselOfRuin: false
+			});
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isVesselOfRuin).toBe(false);
+		});
+
+		it('in Auto mode, detects Fairy Aura anywhere on the field — including on the opposing side, unlike ally support', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const opponentAlly = buildSlot({ speciesName: 'Xerneas' });
+			opponentAlly.ability = 'Fairy Aura';
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, opponentAlly]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf());
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isFairyAura).toBe(true);
+		});
+
+		it('a manual override forces Fairy Aura off even when its holder is on the field', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const ally = buildSlot({ speciesName: 'Xerneas' });
+			ally.ability = 'Fairy Aura';
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, ally], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides, allySupportOf(), sideConditionsOf(), {
+				...defaultFieldConditions(),
+				fairyAura: false
+			});
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isFairyAura).toBe(false);
+		});
+
+		it('defaults every field-ability flag off when fieldConditions is omitted and no Pokemon has one', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.field.isVesselOfRuin).toBe(false);
+			expect(row.cells[0].damage!.result.field.isTabletsOfRuin).toBe(false);
+			expect(row.cells[0].damage!.result.field.isSwordOfRuin).toBe(false);
+			expect(row.cells[0].damage!.result.field.isBeadsOfRuin).toBe(false);
+			expect(row.cells[0].damage!.result.field.isFairyAura).toBe(false);
+		});
+	});
+
+	describe('Intimidate: flat -1 Atk simplification (not a Side flag)', () => {
+		it("knocks 1 off the attacker's Atk stage when the target's team has Intimidate up", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamB: { intimidate: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(-1);
+		});
+
+		it("stacks on top of the attacker's own manually-set Atk stage", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			attacker.boosts.atk = 2;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamB: { intimidate: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(1);
+		});
+
+		it('clamps at -6 rather than going lower', () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			attacker.boosts.atk = -6;
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamB: { intimidate: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(-6);
+		});
+
+		it("never touches the target's own Atk stage — Intimidate only ever hits an attacker", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(
+				sides,
+				allySupportOf(),
+				sideConditionsOf({ teamA: { intimidate: true } })
+			);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.defender.boosts.atk).toBe(0);
+			// teamA's own Intimidate doesn't debuff teamA's own attacker either.
+			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(0);
+		});
+
+		it("leaves the attacker's Atk stage untouched when neither team has Intimidate up", () => {
+			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			const opponent = buildSlot({ speciesName: 'Snorlax' });
+			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
+
+			const attackers = buildDamageMatrix(sides);
+			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
+
+			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(0);
 		});
 	});
 

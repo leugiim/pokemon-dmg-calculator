@@ -15,7 +15,17 @@
 	// (slot.species, slot.nature, slot.statPoints, ...) via child bind:
 	// directives, and Svelte's ownership tracking requires that chain to be
 	// declared explicitly all the way up, or it warns ownership_invalid_binding.
-	let { slot = $bindable() }: { slot: TeamSlot } = $props();
+	let {
+		slot = $bindable(),
+		tailwind = false,
+		intimidated = false
+	}: {
+		slot: TeamSlot;
+		/** Whether this slot's own team currently has Tailwind up — see `StatPointBars`' own `tailwind`. */
+		tailwind?: boolean;
+		/** Whether the *opposing* team currently has Intimidate up — see `StatPointBars`' own `intimidated`. */
+		intimidated?: boolean;
+	} = $props();
 
 	const disabled = $derived(!slot.species);
 </script>
@@ -59,7 +69,14 @@
 
 	<!-- Stats. -->
 	<div class="min-w-[320px] flex-1 border-x border-gray-800 px-2">
-		<StatPointBars species={slot.species} nature={slot.nature} bind:statPoints={slot.statPoints} />
+		<StatPointBars
+			species={slot.species}
+			nature={slot.nature}
+			bind:statPoints={slot.statPoints}
+			bind:boosts={slot.boosts}
+			{tailwind}
+			{intimidated}
+		/>
 	</div>
 
 	<!-- Moves. -->

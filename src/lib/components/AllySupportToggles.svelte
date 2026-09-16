@@ -47,9 +47,7 @@
 	}
 </script>
 
-<div
-	class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-800 bg-gray-900 p-3 text-[10px] text-gray-400 shadow-sm"
->
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400">
 	<span class="font-medium text-gray-300">Ally support</span>
 	{#each STATIC_ALLY_SUPPORT_FLAGS as flag (flag)}
 		{@const ability = staticAllySupportAbility(flag)}
@@ -67,12 +65,4 @@
 			</select>
 		</label>
 	{/each}
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={support.helpingHand} />
-		Helping Hand
-	</label>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={support.tailwind} />
-		Tailwind
-	</label>
 </div>

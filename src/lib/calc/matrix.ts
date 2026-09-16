@@ -9,6 +9,8 @@ import {
 import { defaultFieldConditions, type FieldConditions } from '../stores/field.svelte';
 import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveItem } from './moves';
 import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
+import { fieldAbilityFlags } from './fieldAbilities';
+import { clampBoostStage } from './format';
 
 /** One damage number in a `DamageMatrixRow`, against one opposing Pokemon. */
 export interface DamageMatrixCell {
@@ -84,7 +86,9 @@ interface TeamContext {
  * `otherOf` to find each target's own ally. `own`/`opponent` are the
  * attacker's own and the opposing team's shared state respectively;
  * `fieldConditions` is the shared weather/terrain (#24), identical for
- * every cell regardless of which side is attacking.
+ * every cell regardless of which side is attacking; `fieldAbilities` is
+ * the already-derived Ruin-ability/Fairy Aura `Field` flags (also shared,
+ * see `fieldAbilities.ts`).
  */
 function buildRows(
 	attacker: TeamSlot,
@@ -93,7 +97,8 @@ function buildRows(
 	opponentSlots: [TeamSlot, TeamSlot],
 	own: TeamContext,
 	opponent: TeamContext,
-	fieldConditions: FieldConditions
+	fieldConditions: FieldConditions,
+	fieldAbilities: ReturnType<typeof fieldAbilityFlags>
 ): DamageMatrixRow[] {
 	return attacker.moves.flatMap((move, moveIndex) => {
 		if (move === null || isAllyOnlyTarget(move)) return [];
@@ -107,7 +112,17 @@ function buildRows(
 			attackerAlly: ally,
 			attackerAllySupport: own.support,
 			weather: fieldConditions.weather ?? undefined,
-			terrain: fieldConditions.terrain ?? undefined
+			terrain: fieldConditions.terrain ?? undefined,
+			gravity: fieldConditions.gravity,
+			fieldAbilities,
+			// The *opponent's* Intimidate (not the attacker's own team's) is
+			// what hits this attacker — same flat -1 Atk stage regardless of
+			// which of the opponent's Pokemon or the attacker's own ally
+			// ends up as `target` below, since it's the attacker's own
+			// persistent stat stage, not something computed per matchup.
+			attackerBoosts: opponent.sideConditions.intimidate
+				? { atk: clampBoostStage(attacker.boosts.atk - 1) }
+				: undefined
 		};
 
 		/** `baseOptions` plus one target's own `defenderSide` context — shared by both branches below so they can't drift out of sync. */
@@ -187,6 +202,10 @@ export function buildDamageMatrix(
 	fieldConditions: FieldConditions = defaultFieldConditions()
 ): DamageMatrixAttacker[] {
 	const attackers: DamageMatrixAttacker[] = [];
+	// Derived once from all 4 slots regardless of team — a Ruin ability or
+	// Fairy Aura applies field-wide (see `fieldAbilities.ts`), not per
+	// attacker/side.
+	const fieldAbilities = fieldAbilityFlags([...sides.teamA, ...sides.teamB], fieldConditions);
 
 	for (const teamId of ['teamA', 'teamB'] as TeamId[]) {
 		const otherTeamId = OTHER_TEAM[teamId];
@@ -207,7 +226,16 @@ export function buildDamageMatrix(
 			attackers.push({
 				attacker,
 				opponents,
-				rows: buildRows(attacker, ally, opponents, opponentSlots, own, opponent, fieldConditions)
+				rows: buildRows(
+					attacker,
+					ally,
+					opponents,
+					opponentSlots,
+					own,
+					opponent,
+					fieldConditions,
+					fieldAbilities
+				)
 			});
 		}
 	}

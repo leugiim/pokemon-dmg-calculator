@@ -21,7 +21,11 @@ describe('sideConditionFlags', () => {
 			lightScreen: true,
 			auroraVeil: true,
 			stealthRock: true,
-			spikes: 3
+			spikes: 3,
+			// intimidate isn't a @smogon/calc Side flag at all (see
+			// sideConditions.ts's own doc comment) — included here only to
+			// satisfy TeamSideConditions, irrelevant to this test's assertion.
+			intimidate: true
 		};
 
 		expect(sideConditionFlags(conditions)).toEqual({
