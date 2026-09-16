@@ -105,3 +105,50 @@ export function statPointBreakpoints(base: number, stat: StatID, nature: NatureI
 	}
 	return points;
 }
+
+/** A stat stage boost (Swords Dance, Intimidate, ...) never applies to HP — the 5 stats it can. */
+export type BoostableStat = Exclude<StatID, 'hp'>;
+
+export const BOOST_STAT_ORDER: BoostableStat[] = ['atk', 'def', 'spa', 'spd', 'spe'];
+
+/** In-battle stat stages range -6..+6 (Minimize/Amnesia at one end, Belly Drum/three Swords Dances at the other) — `@smogon/calc`'s own `Pokemon.boosts` (and the modern boost table below) share this same range. */
+export const MAX_BOOST_STAGE = 6;
+
+/** A Pokémon's current stat stage per boostable stat, 0 by default (no boost/drop). */
+export type StatBoosts = Record<BoostableStat, number>;
+
+export function emptyStatBoosts(): StatBoosts {
+	return { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+}
+
+export function clampBoostStage(stage: number): number {
+	return Math.max(-MAX_BOOST_STAGE, Math.min(MAX_BOOST_STAGE, stage));
+}
+
+/**
+ * The modern (gen 3+) stat-stage multiplier table, indexed by `stage + 6`
+ * — mirrors `@smogon/calc`'s own internal (unexported) `getModifiedStat`
+ * exactly, so the number `StatPointBars` displays never drifts from what
+ * `calculate()` itself derives from the same `rawStat`/`boosts` pair.
+ */
+const BOOST_TABLE: [numerator: number, denominator: number][] = [
+	[2, 8],
+	[2, 7],
+	[2, 6],
+	[2, 5],
+	[2, 4],
+	[2, 3],
+	[2, 2],
+	[3, 2],
+	[4, 2],
+	[5, 2],
+	[6, 2],
+	[7, 2],
+	[8, 2]
+];
+
+/** `rawStat` (unboosted) adjusted by a stat `stage` (-6..+6, clamped) — see `BOOST_TABLE`. */
+export function boostedStat(rawStat: number, stage: number): number {
+	const [numerator, denominator] = BOOST_TABLE[clampBoostStage(stage) + MAX_BOOST_STAGE];
+	return Math.floor((rawStat * numerator) / denominator);
+}

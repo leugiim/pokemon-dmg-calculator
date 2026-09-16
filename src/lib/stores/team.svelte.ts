@@ -2,9 +2,11 @@ import type { SpeciesItem } from '$lib/calc/generation';
 import type { HeldItem } from '$lib/calc/items';
 import type { MoveItem } from '$lib/calc/moves';
 import {
+	emptyStatBoosts,
 	emptyStatPoints,
 	NEUTRAL_NATURE,
 	type NatureInfo,
+	type StatBoosts,
 	type StatPoints
 } from '$lib/calc/format';
 
@@ -98,6 +100,17 @@ export interface TeamSideConditions {
 	stealthRock: boolean;
 	/** 0-3 layers of Spikes. */
 	spikes: number;
+	/**
+	 * A flat, unconditional -1 Attack stage applied to whichever Pokemon
+	 * attacks this team, same simplification as `protect` (ADR-0001):
+	 * real Intimidate only triggers on switch-in and can be blocked
+	 * (Clear Body, Own Tempo, ...) or backfire (Contrary, Simple) — none
+	 * of that is modeled, this is just "what if this team's attacker took
+	 * an Intimidate". Unlike Protect/the screens, it doesn't map to any
+	 * `@smogon/calc` `Side` flag at all — it's a per-Pokemon `boosts.atk`
+	 * adjustment applied in `matrix.ts`, not `sideConditionFlags`.
+	 */
+	intimidate: boolean;
 }
 
 export function defaultTeamSideConditions(): TeamSideConditions {
@@ -107,7 +120,8 @@ export function defaultTeamSideConditions(): TeamSideConditions {
 		lightScreen: false,
 		auroraVeil: false,
 		stealthRock: false,
-		spikes: 0
+		spikes: 0,
+		intimidate: false
 	};
 }
 
@@ -135,6 +149,8 @@ export class TeamSlot {
 	ability = $state<string | null>(null);
 	nature = $state<NatureInfo>(NEUTRAL_NATURE);
 	statPoints = $state<StatPoints>(emptyStatPoints());
+	/** In-battle stat stages (-6..+6, 0 by default) — a "what if" on top of `statPoints`, not part of the build itself; see `StatPointBars`. */
+	boosts = $state<StatBoosts>(emptyStatBoosts());
 	moves = $state<MoveSlots>(emptyMoves());
 	moveOptions = $state<MoveOptionsSlots>(defaultMoveOptionsSlots());
 
@@ -164,6 +180,7 @@ export class TeamSlot {
 			this.item = null;
 			this.nature = NEUTRAL_NATURE;
 			this.statPoints = emptyStatPoints();
+			this.boosts = emptyStatBoosts();
 			this.moves = emptyMoves();
 			this.moveOptions = defaultMoveOptionsSlots();
 		}

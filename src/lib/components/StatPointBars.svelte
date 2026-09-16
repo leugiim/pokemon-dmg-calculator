@@ -1,26 +1,41 @@
 <script lang="ts">
 	import type { StatID } from '@smogon/calc';
 	import {
+		MAX_BOOST_STAGE,
 		MAX_SP_PER_STAT,
 		MAX_SP_TOTAL,
 		STAT_LABELS,
 		STAT_ORDER,
+		boostedStat,
 		calcChampionsStat,
+		clampBoostStage,
 		statPointBreakpoints,
 		totalStatPoints,
+		type BoostableStat,
 		type NatureInfo,
+		type StatBoosts,
 		type StatPoints
 	} from '$lib/calc/format';
 	import type { SpeciesItem } from '$lib/calc/generation';
+	import NumberStepper from './NumberStepper.svelte';
 
 	let {
 		species,
 		nature,
-		statPoints = $bindable()
+		statPoints = $bindable(),
+		boosts = $bindable(),
+		tailwind = false,
+		intimidated = false
 	}: {
 		species: SpeciesItem | null;
 		nature: NatureInfo;
 		statPoints: StatPoints;
+		/** This Pokemon's own in-battle stat stages (-6..+6, 0 = no boost/drop) — see `team.svelte.ts`'s `TeamSlot.boosts`. */
+		boosts: StatBoosts;
+		/** Whether this Pokemon's team currently has Tailwind up — doubles the displayed Speed only, a battle-time buff rather than anything `calcChampionsStat` itself computes. */
+		tailwind?: boolean;
+		/** Whether the *opposing* team currently has Intimidate up (`TeamSideConditions.intimidate`) — knocks 1 more stage off the displayed Atk on top of `boosts.atk`. */
+		intimidated?: boolean;
 	} = $props();
 
 	const spent = $derived(totalStatPoints(statPoints));
@@ -38,6 +53,65 @@
 
 	/** One bar per possible SP value (1..32), click a bar to jump straight to it. */
 	const SP_VALUES = Array.from({ length: MAX_SP_PER_STAT }, (_, i) => i + 1);
+
+	function isBoostable(stat: StatID): stat is BoostableStat {
+		return stat !== 'hp';
+	}
+
+	function setBoost(stat: BoostableStat, value: number) {
+		boosts[stat] = clampBoostStage(value);
+	}
+
+	/** This row's *effective* stat stage: the manually-picked `boosts` value, plus Intimidate's flat -1 to Atk when `intimidated` (see `matrix.ts`'s own simplification) — clamped the same way a real battle would clamp it at ±6. */
+	function effectiveStage(stat: BoostableStat): number {
+		const intimidateAdjustment = stat === 'atk' && intimidated ? 1 : 0;
+		return clampBoostStage(boosts[stat] - intimidateAdjustment);
+	}
+
+	/** `calcChampionsStat`'s value from Stat Points + nature alone — the baseline every color/tooltip below compares the final number against. */
+	function rawStat(stat: StatID): number | null {
+		if (!species) return null;
+		return calcChampionsStat(species.baseStats[stat], stat, statPoints[stat], nature);
+	}
+
+	/**
+	 * The stat number shown on the right: `rawStat`, adjusted by
+	 * `effectiveStage` for every stat but HP (which no stage ever
+	 * touches), then Speed doubled on top while Tailwind is up (a separate
+	 * multiplier from stat stages entirely, see `tailwind` above).
+	 */
+	function displayedStat(stat: StatID): number | null {
+		const raw = rawStat(stat);
+		if (raw === null) return null;
+		if (!isBoostable(stat)) return raw;
+		const boosted = boostedStat(raw, effectiveStage(stat));
+		return stat === 'spe' && tailwind ? boosted * 2 : boosted;
+	}
+
+	/** Red once anything (stage, Intimidate, Tailwind) pushes the final number above `rawStat`, blue once it pushes it below, gray when Stat Points + nature is all that's going on. */
+	function statColorClass(stat: StatID): string {
+		const raw = rawStat(stat);
+		const final = displayedStat(stat);
+		if (raw === null || final === null || final === raw) return 'text-gray-500';
+		return final > raw ? 'text-red-400' : 'text-blue-400';
+	}
+
+	/** Whether this row's final number differs from its plain unboosted value — drives the tooltip. */
+	function isModified(stat: StatID): boolean {
+		if (!isBoostable(stat)) return false;
+		return effectiveStage(stat) !== 0 || (stat === 'spe' && tailwind);
+	}
+
+	function modifierTooltip(stat: StatID): string | undefined {
+		if (!isModified(stat)) return undefined;
+		const parts: string[] = [];
+		if (isBoostable(stat) && boosts[stat] !== 0) {
+			parts.push(`${boosts[stat] > 0 ? '+' : ''}${boosts[stat]} stage`);
+		}
+		if (stat === 'atk' && intimidated) parts.push('Intimidate (-1 stage)');
+		if (stat === 'spe' && tailwind) parts.push('Tailwind (×2)');
+		return parts.join(', ');
+	}
 </script>
 
 <div class="flex w-full flex-col gap-1">
@@ -87,58 +161,32 @@
 					</div>
 				{/each}
 			</div>
-			<div class="relative w-10 shrink-0">
-				<input
-					type="number"
-					min="0"
-					max={MAX_SP_PER_STAT}
-					value={statPoints[stat]}
-					disabled={!species}
-					oninput={(e) => setStat(stat, Number(e.currentTarget.value))}
-					class="stat-input w-full rounded border border-gray-700 bg-gray-800 py-0.5 pr-3.5 pl-1 text-right text-[11px] text-gray-100 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none disabled:opacity-40"
-				/>
-				<div class="absolute inset-y-0 right-0.5 flex flex-col justify-center">
-					<button
-						type="button"
-						tabindex="-1"
+			<NumberStepper
+				value={statPoints[stat]}
+				min={0}
+				max={MAX_SP_PER_STAT}
+				disabled={!species}
+				ariaLabel="{STAT_LABELS[stat]} SP"
+				onChange={(value) => setStat(stat, value)}
+			/>
+			<div class="w-10 shrink-0">
+				{#if isBoostable(stat)}
+					<NumberStepper
+						value={boosts[stat]}
+						min={-MAX_BOOST_STAGE}
+						max={MAX_BOOST_STAGE}
 						disabled={!species}
-						onclick={() => setStat(stat, statPoints[stat] + 1)}
-						aria-label="Increase"
-						class="flex h-2.5 w-3 items-center justify-center text-[8px] leading-none text-gray-500 hover:text-gray-300 disabled:pointer-events-none disabled:opacity-40"
-					>
-						▲
-					</button>
-					<button
-						type="button"
-						tabindex="-1"
-						disabled={!species}
-						onclick={() => setStat(stat, statPoints[stat] - 1)}
-						aria-label="Decrease"
-						class="flex h-2.5 w-3 items-center justify-center text-[8px] leading-none text-gray-500 hover:text-gray-300 disabled:pointer-events-none disabled:opacity-40"
-					>
-						▼
-					</button>
-				</div>
+						ariaLabel="{STAT_LABELS[stat]} stat stage"
+						onChange={(value) => setBoost(stat, value)}
+					/>
+				{/if}
 			</div>
-			<span class="w-8 shrink-0 text-right text-[11px] font-semibold text-gray-500">
-				{species ? calcChampionsStat(species.baseStats[stat], stat, statPoints[stat], nature) : '–'}
+			<span
+				class="w-8 shrink-0 text-right text-[11px] font-semibold {statColorClass(stat)}"
+				title={modifierTooltip(stat)}
+			>
+				{displayedStat(stat) ?? '–'}
 			</span>
 		</div>
 	{/each}
 </div>
-
-<style>
-	/* Chrome only lets you fade its number spinner, not recolor it — so
-	   hide it outright and use our own ▲▼ buttons instead, which we can
-	   actually theme. `-moz-appearance` does the same for Firefox, which
-	   doesn't expose the spinner as a styleable pseudo-element at all. */
-	.stat-input::-webkit-inner-spin-button,
-	.stat-input::-webkit-outer-spin-button {
-		appearance: none;
-		margin: 0;
-	}
-	.stat-input {
-		appearance: textfield;
-		-moz-appearance: textfield;
-	}
-</style>

@@ -11,6 +11,10 @@ import type { TeamSideConditions } from '../stores/team.svelte';
  * Unlike ally support, none of these derive from any Pokémon's own
  * `ability` — there's no Auto mode, so this is a direct, unconditional
  * mapping with no override layer to apply.
+ *
+ * `intimidate` is deliberately left out: it isn't a `@smogon/calc` `Side`
+ * flag at all, it's a per-Pokemon `boosts.atk` adjustment applied directly
+ * in `matrix.ts` (see `TeamSideConditions.intimidate`'s own doc comment).
  */
 export function sideConditionFlags(conditions: TeamSideConditions) {
 	return {

@@ -1,53 +1,108 @@
 <script lang="ts">
-	import type { TeamSideConditions } from '$lib/stores/team.svelte';
+	import type { TeamAllySupport, TeamSideConditions } from '$lib/stores/team.svelte';
+	import ToggleButton from './ToggleButton.svelte';
 
-	// conditions is $bindable: this two-way-binds into conditions.protect /
-	// .reflect / ... via child bind: directives — see +page.svelte (where
-	// this is rendered) for why that needs declaring explicitly. One
-	// `conditions` object is shared by both of a team's slots, same as
-	// `AllySupportToggles`' `support` — this renders once per team.
+	// conditions/allySupport are $bindable: this two-way-binds into
+	// conditions.protect / .reflect / ... and allySupport.helpingHand via
+	// child bind: directives — see +page.svelte (where this is rendered)
+	// for why that needs declaring explicitly. Both are shared by both of a
+	// team's slots, same as `AllySupportToggles`' own `support` — this
+	// renders once per team. Helping Hand lives here rather than in
+	// `AllySupportToggles` because — unlike Friend Guard/Battery/Power
+	// Spot/Steely Spirit — it has no Auto mode either, same as every other
+	// toggle in this card.
 	let {
 		conditions = $bindable(),
+		allySupport = $bindable(),
 		disabled = false
-	}: { conditions: TeamSideConditions; disabled?: boolean } = $props();
+	}: {
+		conditions: TeamSideConditions;
+		allySupport: TeamAllySupport;
+		disabled?: boolean;
+	} = $props();
 </script>
 
-<div
-	class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-800 bg-gray-900 p-3 text-[10px] text-gray-400 shadow-sm"
->
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400">
 	<span class="font-medium text-gray-300">Side conditions</span>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={conditions.protect} />
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.protect}
+		{disabled}
+		onclick={() => (conditions.protect = !conditions.protect)}
+	>
 		Protect
-	</label>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={conditions.reflect} />
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={allySupport.tailwind}
+		{disabled}
+		onclick={() => (allySupport.tailwind = !allySupport.tailwind)}
+	>
+		Tailwind
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.intimidate}
+		{disabled}
+		onclick={() => (conditions.intimidate = !conditions.intimidate)}
+		title="Applies a flat -1 Attack stage to whichever Pokemon attacks this team"
+	>
+		Intimidate
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={allySupport.helpingHand}
+		{disabled}
+		onclick={() => (allySupport.helpingHand = !allySupport.helpingHand)}
+	>
+		Helping Hand
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.reflect}
+		{disabled}
+		onclick={() => (conditions.reflect = !conditions.reflect)}
+	>
 		Reflect
-	</label>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={conditions.lightScreen} />
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.lightScreen}
+		{disabled}
+		onclick={() => (conditions.lightScreen = !conditions.lightScreen)}
+	>
 		Light Screen
-	</label>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={conditions.auroraVeil} />
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.auroraVeil}
+		{disabled}
+		onclick={() => (conditions.auroraVeil = !conditions.auroraVeil)}
+	>
 		Aurora Veil
-	</label>
-	<label class="flex items-center gap-1">
-		<input type="checkbox" {disabled} bind:checked={conditions.stealthRock} />
+	</ToggleButton>
+	<ToggleButton
+		class="rounded border border-gray-700"
+		active={conditions.stealthRock}
+		{disabled}
+		onclick={() => (conditions.stealthRock = !conditions.stealthRock)}
+	>
 		Stealth Rock
-	</label>
-	<label class="flex items-center gap-1">
+	</ToggleButton>
+	<span class="flex items-center gap-1">
 		Spikes
-		<select
-			class="rounded bg-gray-800 px-1 py-0.5 text-[10px] text-gray-200 disabled:opacity-30"
-			aria-label="Spikes layers"
-			{disabled}
-			bind:value={conditions.spikes}
+		<span
+			class="inline-flex divide-x divide-gray-700 overflow-hidden rounded-lg border border-gray-700"
 		>
-			<option value={0}>0</option>
-			<option value={1}>1</option>
-			<option value={2}>2</option>
-			<option value={3}>3</option>
-		</select>
-	</label>
+			{#each [0, 1, 2, 3] as layers (layers)}
+				<ToggleButton
+					active={conditions.spikes === layers}
+					{disabled}
+					onclick={() => (conditions.spikes = layers)}
+				>
+					{layers}
+				</ToggleButton>
+			{/each}
+		</span>
+	</span>
 </div>
