@@ -17,7 +17,7 @@
 		type StatPoints
 	} from '$lib/calc/format';
 	import type { SpeciesItem } from '$lib/calc/generation';
-	import NumberStepper from './NumberStepper.svelte';
+	import NumberStepper from '../ui/NumberStepper.svelte';
 
 	let {
 		species,

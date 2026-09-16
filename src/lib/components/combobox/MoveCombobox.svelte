@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { allMoves, type MoveItem } from '$lib/calc/moves';
-	import SearchableCombobox from './SearchableCombobox.svelte';
+	import SearchableCombobox from '../ui/SearchableCombobox.svelte';
 
 	let {
 		selected = $bindable(null),

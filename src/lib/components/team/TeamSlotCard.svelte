@@ -1,15 +1,15 @@
 <script lang="ts">
 	import type { TeamSlot } from '$lib/stores/team.svelte';
-	import AbilityCombobox from './AbilityCombobox.svelte';
-	import PokemonCombobox from './PokemonCombobox.svelte';
-	import FormeCombobox from './FormeCombobox.svelte';
+	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
+	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
+	import FormeCombobox from '../combobox/FormeCombobox.svelte';
 	import GenderToggle from './GenderToggle.svelte';
-	import ItemCombobox from './ItemCombobox.svelte';
+	import ItemCombobox from '../combobox/ItemCombobox.svelte';
 	import MoveSlot from './MoveSlot.svelte';
-	import NatureCombobox from './NatureCombobox.svelte';
-	import SpeciesSprite from './SpeciesSprite.svelte';
+	import NatureCombobox from '../combobox/NatureCombobox.svelte';
+	import SpeciesSprite from '../display/SpeciesSprite.svelte';
 	import StatPointBars from './StatPointBars.svelte';
-	import TypeBadge from './TypeBadge.svelte';
+	import TypeBadge from '../display/TypeBadge.svelte';
 
 	// slot is $bindable: this component two-way-binds into its properties
 	// (slot.species, slot.nature, slot.statPoints, ...) via child bind:

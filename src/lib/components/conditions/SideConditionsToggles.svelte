@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { TeamAllySupport, TeamSideConditions } from '$lib/stores/team.svelte';
-	import ToggleButton from './ToggleButton.svelte';
+	import ToggleButton from '../ui/ToggleButton.svelte';
 
 	// conditions/allySupport are $bindable: this two-way-binds into
 	// conditions.protect / .reflect / ... and allySupport.helpingHand via
