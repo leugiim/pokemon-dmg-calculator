@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TeamSlot } from '$lib/stores/team.svelte';
+	import { exportPokePaste, importPokePaste } from '$lib/calc/pokepaste';
 	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
 	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
 	import FormeCombobox from '../combobox/FormeCombobox.svelte';
@@ -28,6 +29,44 @@
 	} = $props();
 
 	const disabled = $derived(!slot.species);
+
+	let copied = $state(false);
+	/** Set only when the Clipboard API itself fails (denied permission, unsupported) — shows the text inline so it can still be copied by hand. */
+	let pasteFallback = $state<string | null>(null);
+
+	async function copyPokePaste() {
+		if (!slot.species) return;
+		const text = exportPokePaste(slot);
+		try {
+			await navigator.clipboard.writeText(text);
+			pasteFallback = null;
+			copied = true;
+			setTimeout(() => (copied = false), 1500);
+		} catch {
+			pasteFallback = text;
+		}
+	}
+
+	let importOpen = $state(false);
+	let importText = $state('');
+	let importError = $state<string | null>(null);
+
+	function submitImport() {
+		try {
+			importPokePaste(slot, importText);
+			importOpen = false;
+			importText = '';
+			importError = null;
+		} catch (err) {
+			importError = err instanceof Error ? err.message : String(err);
+		}
+	}
+
+	function cancelImport() {
+		importOpen = false;
+		importText = '';
+		importError = null;
+	}
 </script>
 
 <div class="flex items-start gap-2 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-sm">
@@ -90,5 +129,60 @@
 		{#each [0, 1, 2, 3] as i (i)}
 			<MoveSlot bind:selected={slot.moves[i]} {disabled} attacker={slot} moveIndex={i} />
 		{/each}
+		<div class="mt-1 flex gap-1">
+			<button
+				type="button"
+				{disabled}
+				onclick={copyPokePaste}
+				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
+			>
+				{copied ? 'Copied!' : 'Copy PokePaste'}
+			</button>
+			<button
+				type="button"
+				onclick={() => (importOpen = !importOpen)}
+				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700"
+			>
+				Import PokePaste
+			</button>
+		</div>
+		{#if pasteFallback}
+			<textarea
+				readonly
+				value={pasteFallback}
+				rows="6"
+				aria-label="PokePaste export (copy manually)"
+				onclick={(e) => e.currentTarget.select()}
+				class="w-full rounded border border-gray-700 bg-gray-800 p-1 font-mono text-[10px] text-gray-100"
+			></textarea>
+		{/if}
+		{#if importOpen}
+			<textarea
+				bind:value={importText}
+				rows="6"
+				placeholder="Paste a PokePaste/Showdown export here…"
+				aria-label="PokePaste text to import"
+				class="w-full rounded border border-gray-700 bg-gray-800 p-1 font-mono text-[10px] text-gray-100 placeholder:text-gray-500 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+			></textarea>
+			{#if importError}
+				<p class="text-[10px] text-red-400">{importError}</p>
+			{/if}
+			<div class="flex gap-1">
+				<button
+					type="button"
+					onclick={submitImport}
+					class="rounded border border-gray-700 bg-indigo-600 px-2 py-1 text-[10px] text-white hover:bg-indigo-500"
+				>
+					Import
+				</button>
+				<button
+					type="button"
+					onclick={cancelImport}
+					class="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700"
+				>
+					Cancel
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
