@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { MoveItem } from '$lib/calc/moves';
 	import type { TeamSlot } from '$lib/stores/team.svelte';
-	import MoveCategoryIcon from './MoveCategoryIcon.svelte';
-	import MoveCombobox from './MoveCombobox.svelte';
-	import TypeBadge from './TypeBadge.svelte';
+	import MoveCategoryIcon from '../display/MoveCategoryIcon.svelte';
+	import MoveCombobox from '../combobox/MoveCombobox.svelte';
+	import TypeBadge from '../display/TypeBadge.svelte';
 
 	let {
 		selected = $bindable(null),

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { allItems, type HeldItem } from '$lib/calc/items';
-	import ItemIcon from './ItemIcon.svelte';
-	import SearchableCombobox from './SearchableCombobox.svelte';
+	import ItemIcon from '../display/ItemIcon.svelte';
+	import SearchableCombobox from '../ui/SearchableCombobox.svelte';
 
 	let {
 		selected = $bindable(null),

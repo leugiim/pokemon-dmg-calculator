@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { abilitiesOf, type AbilityOption } from '$lib/calc/abilities';
 	import type { SpeciesItem } from '$lib/calc/generation';
-	import SearchableCombobox from './SearchableCombobox.svelte';
+	import SearchableCombobox from '../ui/SearchableCombobox.svelte';
 
 	let {
 		species,

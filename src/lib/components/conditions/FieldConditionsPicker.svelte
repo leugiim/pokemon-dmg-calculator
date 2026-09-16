@@ -12,7 +12,7 @@
 		fieldAbilityName,
 		type FieldAbilityFlag
 	} from '$lib/calc/fieldAbilities';
-	import ToggleButton from './ToggleButton.svelte';
+	import ToggleButton from '../ui/ToggleButton.svelte';
 
 	const allSlots = $derived([...sides.teamA, ...sides.teamB]);
 

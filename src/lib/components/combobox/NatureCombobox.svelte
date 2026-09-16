@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { allNatures, STAT_LABELS, type NatureInfo } from '$lib/calc/format';
-	import SearchableCombobox from './SearchableCombobox.svelte';
+	import SearchableCombobox from '../ui/SearchableCombobox.svelte';
 
 	let { selected = $bindable(), disabled = false }: { selected: NatureInfo; disabled?: boolean } =
 		$props();

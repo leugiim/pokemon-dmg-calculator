@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pickableSpecies, speciesLabel, type SpeciesItem } from '$lib/calc/generation';
-	import SearchableCombobox from './SearchableCombobox.svelte';
-	import SpeciesSprite from './SpeciesSprite.svelte';
+	import SearchableCombobox from '../ui/SearchableCombobox.svelte';
+	import SpeciesSprite from '../display/SpeciesSprite.svelte';
 
 	let { selected = $bindable(null) }: { selected?: SpeciesItem | null } = $props();
 </script>

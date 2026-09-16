@@ -9,7 +9,7 @@
 	import { buildDamageMatrix, type DamageMatrixAttacker } from '$lib/calc/matrix';
 	import { hasDamageComponent, multiHitRange, type MultiHitRange } from '$lib/calc/moves';
 	import DamageResult from './DamageResult.svelte';
-	import SpeciesSprite from './SpeciesSprite.svelte';
+	import SpeciesSprite from '../display/SpeciesSprite.svelte';
 
 	let {
 		teamId,
