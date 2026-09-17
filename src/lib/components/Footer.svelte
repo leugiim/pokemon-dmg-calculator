@@ -22,7 +22,7 @@
 	<p class="mx-auto mt-2 max-w-2xl">
 		Damage calculations powered by
 		<a
-			href="https://www.npmjs.com/package/@smogon/calc"
+			href="https://github.com/smogon/damage-calc"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="underline hover:text-gray-300"
