@@ -1,6 +1,6 @@
 import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smogon/calc';
 import { GEN_NUM } from './generation';
-import { FIXED_IV, LEVEL, STAT_ORDER, type StatBoosts, type StatPoints } from './format';
+import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
 import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
 import type { BattleFormat, Terrain, Weather } from '../stores/field.svelte';
 import type { MoveItem } from './moves';
@@ -44,13 +44,12 @@ function allIvs(): Record<StatID, number> {
 }
 
 /**
- * Builds a `@smogon/calc` `Pokemon` from a `TeamSlot`'s build. `boostOverrides`
- * layers on top of the slot's own `boosts` (e.g. `matrix.ts`'s Intimidate
- * simplification knocking an attacker's Atk stage down by 1) rather than
- * replacing it outright, so every stage the caller doesn't explicitly touch
- * still comes from the slot itself.
+ * Builds a `@smogon/calc` `Pokemon` from a `TeamSlot`'s build — `boosts`
+ * included as-is, straight from the slot (e.g. Intimidate is a real,
+ * permanent stage change `StatPointBars` applies directly to
+ * `TeamSlot.boosts.atk`, not a per-calculation overlay layered on here).
  */
-export function toSmogonPokemon(slot: TeamSlot, boostOverrides?: Partial<StatBoosts>): Pokemon {
+export function toSmogonPokemon(slot: TeamSlot): Pokemon {
 	if (!slot.species) throw new Error('toSmogonPokemon: slot has no species selected');
 
 	return new Pokemon(GEN_NUM, slot.species.name, {
@@ -60,7 +59,7 @@ export function toSmogonPokemon(slot: TeamSlot, boostOverrides?: Partial<StatBoo
 		nature: slot.nature.name,
 		ivs: allIvs(),
 		evs: toEvs(slot.statPoints),
-		boosts: { ...slot.boosts, ...boostOverrides }
+		boosts: slot.boosts
 	});
 }
 
@@ -88,14 +87,6 @@ export interface DamageOptions {
 	 * auto-derivation with no override capability at all.
 	 */
 	attackerAllySupport?: TeamAllySupport;
-	/**
-	 * Stat-stage overrides layered onto the attacker's own `boosts` for
-	 * this calculation only — currently just `matrix.ts`'s flat Intimidate
-	 * simplification (`TeamSideConditions.intimidate`), which knocks the
-	 * attacker's Atk stage down by 1 when the *target's* team has it up.
-	 * See `toSmogonPokemon`.
-	 */
-	attackerBoosts?: Partial<StatBoosts>;
 	/**
 	 * The target's own ally, used (together with `defenderAllySupport`) to
 	 * derive `defenderSide`'s Friend Guard flag (ADR-0003, #13). See
@@ -173,7 +164,7 @@ export function computeDamage(
 	target: TeamSlot,
 	options: DamageOptions = {}
 ): DamageDisplay {
-	const attackerMon = toSmogonPokemon(attacker, options.attackerBoosts);
+	const attackerMon = toSmogonPokemon(attacker);
 	const targetMon = toSmogonPokemon(target);
 	const smogonMove = toSmogonMove(move, attacker, options);
 	// attackerSideFlags/defenderSideFlags/sideConditionFlags are called

@@ -116,102 +116,110 @@
 		{:else if rows.length === 0}
 			<p class="text-[11px] text-gray-500">No moves selected yet.</p>
 		{:else}
-			<table class="w-full text-left text-[11px]">
-				<thead>
-					<tr class="text-gray-400">
-						<th class="py-1 pr-2 font-medium">Move</th>
-						<th class="py-1 pr-2 font-medium">Crit</th>
-						{#if showsHitsColumn}
-							<th class="py-1 pr-2 font-medium">Hits</th>
-						{/if}
-						{#each opponents as opponent (opponent)}
-							<th class="py-1 pr-2 font-medium" title={labelFor(opponent)}>
-								<div class="flex flex-col items-center gap-0.5">
-									{#if opponent.species}
-										<SpeciesSprite species={opponent.species} size={20} />
-									{/if}
-									<span class="text-center leading-tight">{opponent.species?.name}</span>
-								</div>
-							</th>
-						{/each}
-						{#if showsAllyColumn}
-							<th class="py-1 pr-2 font-medium" title={ally ? labelFor(ally) : 'Ally'}>
-								<div class="flex flex-col items-center gap-0.5">
-									{#if ally?.species}
-										<SpeciesSprite species={ally.species} size={20} />
-									{/if}
-									<span class="text-center leading-tight">{ally?.species?.name ?? 'Ally'}</span>
-								</div>
-							</th>
-						{/if}
-					</tr>
-				</thead>
-				<tbody>
-					{#each rows as { move, moveIndex, cells, isAllAdjacentMove, allyDamage } (moveIndex)}
-						{@const damaging = hasDamageComponent(move)}
-						{@const range = multiHitRange(move)}
-						<tr class="border-t border-gray-800/60">
-							<td class="py-1 pr-2 text-gray-200">{move.name}</td>
-							<td class="py-1 pr-2">
-								<!-- Only a damaging move's crit assumption changes anything it
-								     computes — a Status move's row has nothing for it to affect. -->
-								{#if damaging}
-									<label class="flex items-center gap-1 text-gray-400">
-										<input type="checkbox" bind:checked={attacker.moveOptions[moveIndex].isCrit} />
-										<span class="sr-only">Assume critical hit for {move.name}</span>
-									</label>
-								{/if}
-							</td>
+			<!-- Scrolls horizontally within its own card on a narrow viewport
+			     (many opponent/ally columns can easily outgrow it) instead of
+			     forcing the whole page to scroll sideways. -->
+			<div class="overflow-x-auto">
+				<table class="w-full min-w-max text-left text-[11px]">
+					<thead>
+						<tr class="text-gray-400">
+							<th class="py-1 pr-2 font-medium">Move</th>
+							<th class="py-1 pr-2 font-medium">Crit</th>
 							{#if showsHitsColumn}
-								<td class="py-1 pr-2">
-									{#if damaging && range}
-										<select
-											class="rounded bg-gray-800 px-1 py-0.5 text-[11px] text-gray-200"
-											aria-label="Hit count for {move.name}"
-											bind:value={attacker.moveOptions[moveIndex].hits}
-										>
-											<option value={null}>Auto</option>
-											{#each hitOptions(range) as n (n)}
-												<option value={n}>{n}</option>
-											{/each}
-										</select>
-									{/if}
-								</td>
+								<th class="py-1 pr-2 font-medium">Hits</th>
 							{/if}
-							{#each cells as { target, damage } (target)}
-								<td class="py-1 pr-2 text-center text-gray-100">
-									{#if damage}
-										<ToggleButton
-											class="rounded"
-											active={isSelected(moveIndex, target)}
-											onclick={() => selectCell(moveIndex, target)}
-										>
-											<DamageResult {damage} koChanceClass="text-gray-500" />
-										</ToggleButton>
-									{:else}
-										—
-									{/if}
-								</td>
+							{#each opponents as opponent (opponent)}
+								<th class="py-1 pr-2 font-medium" title={labelFor(opponent)}>
+									<div class="flex flex-col items-center gap-0.5">
+										{#if opponent.species}
+											<SpeciesSprite species={opponent.species} size={20} />
+										{/if}
+										<span class="text-center leading-tight">{opponent.species?.name}</span>
+									</div>
+								</th>
 							{/each}
 							{#if showsAllyColumn}
-								<td class="py-1 pr-2 text-center text-gray-100">
-									{#if allyDamage}
-										<ToggleButton
-											class="rounded"
-											active={isSelected(moveIndex, null)}
-											onclick={() => selectCell(moveIndex, null)}
-										>
-											<DamageResult damage={allyDamage} koChanceClass="text-gray-500" />
-										</ToggleButton>
-									{:else if isAllAdjacentMove}
-										—
-									{/if}
-								</td>
+								<th class="py-1 pr-2 font-medium" title={ally ? labelFor(ally) : 'Ally'}>
+									<div class="flex flex-col items-center gap-0.5">
+										{#if ally?.species}
+											<SpeciesSprite species={ally.species} size={20} />
+										{/if}
+										<span class="text-center leading-tight">{ally?.species?.name ?? 'Ally'}</span>
+									</div>
+								</th>
 							{/if}
 						</tr>
-					{/each}
-				</tbody>
-			</table>
+					</thead>
+					<tbody>
+						{#each rows as { move, moveIndex, cells, isAllAdjacentMove, allyDamage } (moveIndex)}
+							{@const damaging = hasDamageComponent(move)}
+							{@const range = multiHitRange(move)}
+							<tr class="border-t border-gray-800/60">
+								<td class="py-1 pr-2 text-gray-200">{move.name}</td>
+								<td class="py-1 pr-2">
+									<!-- Only a damaging move's crit assumption changes anything it
+								     computes — a Status move's row has nothing for it to affect. -->
+									{#if damaging}
+										<label class="flex items-center gap-1 text-gray-400">
+											<input
+												type="checkbox"
+												bind:checked={attacker.moveOptions[moveIndex].isCrit}
+											/>
+											<span class="sr-only">Assume critical hit for {move.name}</span>
+										</label>
+									{/if}
+								</td>
+								{#if showsHitsColumn}
+									<td class="py-1 pr-2">
+										{#if damaging && range}
+											<select
+												class="rounded bg-gray-800 px-1 py-0.5 text-[11px] text-gray-200"
+												aria-label="Hit count for {move.name}"
+												bind:value={attacker.moveOptions[moveIndex].hits}
+											>
+												<option value={null}>Auto</option>
+												{#each hitOptions(range) as n (n)}
+													<option value={n}>{n}</option>
+												{/each}
+											</select>
+										{/if}
+									</td>
+								{/if}
+								{#each cells as { target, damage } (target)}
+									<td class="py-1 pr-2 text-center text-gray-100">
+										{#if damage}
+											<ToggleButton
+												class="rounded"
+												active={isSelected(moveIndex, target)}
+												onclick={() => selectCell(moveIndex, target)}
+											>
+												<DamageResult {damage} koChanceClass="text-gray-300" />
+											</ToggleButton>
+										{:else}
+											—
+										{/if}
+									</td>
+								{/each}
+								{#if showsAllyColumn}
+									<td class="py-1 pr-2 text-center text-gray-100">
+										{#if allyDamage}
+											<ToggleButton
+												class="rounded"
+												active={isSelected(moveIndex, null)}
+												onclick={() => selectCell(moveIndex, null)}
+											>
+												<DamageResult damage={allyDamage} koChanceClass="text-gray-300" />
+											</ToggleButton>
+										{:else if isAllAdjacentMove}
+											—
+										{/if}
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
 			{#if selectedCell?.damage}
 				{@const result = selectedCell.damage.result}
 				{@const rolls = damageRolls(result)}

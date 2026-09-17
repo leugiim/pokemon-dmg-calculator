@@ -610,9 +610,19 @@ describe('buildDamageMatrix', () => {
 		});
 	});
 
-	describe('Intimidate: flat -1 Atk simplification (not a Side flag)', () => {
-		it("knocks 1 off the attacker's Atk stage when the target's team has Intimidate up", () => {
+	describe('Intimidate (not a Side flag)', () => {
+		// Intimidate itself is no longer computed anywhere in this file —
+		// it's a real, permanent stage change `StatPointBars` applies
+		// directly to `TeamSlot.boosts.atk` the moment the opposing team's
+		// Intimidate flips on (see that component and
+		// `TeamSideConditions.intimidate`'s own doc comment), not a
+		// per-calculation overlay this module used to layer on top. All
+		// this file needs to guarantee is that whatever `boosts.atk` a
+		// slot already carries passes straight through untouched — the
+		// same thing every other stat stage already does.
+		it("passes an attacker's own boosts.atk through as-is, whatever sideConditions.intimidate is set to", () => {
 			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
+			attacker.boosts.atk = -1;
 			const opponent = buildSlot({ speciesName: 'Snorlax' });
 			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
 
@@ -624,66 +634,6 @@ describe('buildDamageMatrix', () => {
 			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
 
 			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(-1);
-		});
-
-		it("stacks on top of the attacker's own manually-set Atk stage", () => {
-			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
-			attacker.boosts.atk = 2;
-			const opponent = buildSlot({ speciesName: 'Snorlax' });
-			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
-
-			const attackers = buildDamageMatrix(
-				sides,
-				allySupportOf(),
-				sideConditionsOf({ teamB: { intimidate: true } })
-			);
-			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
-
-			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(1);
-		});
-
-		it('clamps at -6 rather than going lower', () => {
-			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
-			attacker.boosts.atk = -6;
-			const opponent = buildSlot({ speciesName: 'Snorlax' });
-			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
-
-			const attackers = buildDamageMatrix(
-				sides,
-				allySupportOf(),
-				sideConditionsOf({ teamB: { intimidate: true } })
-			);
-			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
-
-			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(-6);
-		});
-
-		it("never touches the target's own Atk stage — Intimidate only ever hits an attacker", () => {
-			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
-			const opponent = buildSlot({ speciesName: 'Snorlax' });
-			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
-
-			const attackers = buildDamageMatrix(
-				sides,
-				allySupportOf(),
-				sideConditionsOf({ teamA: { intimidate: true } })
-			);
-			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
-
-			expect(row.cells[0].damage!.result.defender.boosts.atk).toBe(0);
-			// teamA's own Intimidate doesn't debuff teamA's own attacker either.
-			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(0);
-		});
-
-		it("leaves the attacker's Atk stage untouched when neither team has Intimidate up", () => {
-			const attacker = buildSlot({ speciesName: 'Garchomp', moveNames: ['Dragon Claw'] });
-			const opponent = buildSlot({ speciesName: 'Snorlax' });
-			const sides = sidesOf([attacker, new TeamSlot()], [opponent, new TeamSlot()]);
-
-			const attackers = buildDamageMatrix(sides);
-			const row = attackers.find((r) => r.attacker === attacker)!.rows[0];
-
-			expect(row.cells[0].damage!.result.attacker.boosts.atk).toBe(0);
 		});
 	});
 

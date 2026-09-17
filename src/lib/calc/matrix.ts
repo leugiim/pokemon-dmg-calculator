@@ -10,8 +10,6 @@ import { defaultFieldConditions, type FieldConditions } from '../stores/field.sv
 import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveItem } from './moves';
 import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
 import { fieldAbilityFlags } from './fieldAbilities';
-import { clampBoostStage } from './format';
-import { providesIntimidate } from './sideConditions';
 
 /** One damage number in a `DamageMatrixRow`, against one opposing Pokemon. */
 export interface DamageMatrixCell {
@@ -107,6 +105,14 @@ function buildRows(
 		const { isCrit, hits } = attacker.moveOptions[moveIndex];
 		const damaging = hasDamageComponent(move);
 		const isAllAdjacentMove = isAllAdjacentTarget(move);
+		// Intimidate is *not* computed here — unlike every other flag/side
+		// condition in this file, it's baked directly into the opposing
+		// Pokemon's own `attacker.boosts.atk` (a real, permanent stat-stage
+		// change applied by `StatPointBars`' own effect the moment the
+		// opposing team's Intimidate flips on, not a per-calculation
+		// overlay) — see `TeamSideConditions.intimidate`'s own doc comment.
+		// `toSmogonPokemon` (`computeDamage`) already reads `attacker.boosts`
+		// as-is, so there's nothing left for this function to layer on top.
 		const baseOptions: DamageOptions = {
 			isCrit,
 			hits: hits ?? undefined,
@@ -116,18 +122,7 @@ function buildRows(
 			weather: fieldConditions.weather ?? undefined,
 			terrain: fieldConditions.terrain ?? undefined,
 			gravity: fieldConditions.gravity,
-			fieldAbilities,
-			// The *opponent's* Intimidate (not the attacker's own team's) is
-			// what hits this attacker — same flat -1 Atk stage regardless of
-			// which of the opponent's Pokemon or the attacker's own ally
-			// ends up as `target` below, since it's the attacker's own
-			// persistent stat stage, not something computed per matchup.
-			// `opponentSlots` (that team's own roster) is what
-			// `providesIntimidate` auto-derives from when its manual
-			// override is unset.
-			attackerBoosts: providesIntimidate(opponentSlots, opponent.sideConditions)
-				? { atk: clampBoostStage(attacker.boosts.atk - 1) }
-				: undefined
+			fieldAbilities
 		};
 
 		/** `baseOptions` plus one target's own `defenderSide` context — shared by both branches below so they can't drift out of sync. */

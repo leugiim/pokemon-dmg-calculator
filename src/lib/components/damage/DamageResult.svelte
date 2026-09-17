@@ -8,11 +8,21 @@
 	 * than their combined length. Callers own their own layout/typography
 	 * around it; `koChanceClass` lets the KO chance annotation be styled
 	 * distinctly from the %HP range the way `DamageMatrix` does.
+	 *
+	 * `max-w-24` caps how wide either line can grow: `@smogon/calc`'s own
+	 * KO chance text can run long once it starts naming end-of-turn/hazard
+	 * qualifiers ("48.4% chance to 2HKO after Stealth Rock and Leftovers
+	 * recovery"), and without a cap it renders on one single unwrapped
+	 * line, stretching every Damage Matrix column (and the table itself,
+	 * `AttackerTable`'s `overflow-x-auto` wrapper especially readily lets
+	 * it) out to fit — wrapping onto as many lines as it needs, at a fixed
+	 * width, keeps a cell's footprint sane regardless of how long that
+	 * text gets.
 	 */
 	let { damage, koChanceClass = '' }: { damage: DamageDisplay; koChanceClass?: string } = $props();
 </script>
 
-<div class="flex flex-col leading-tight">
+<div class="flex max-w-24 flex-col leading-tight">
 	<span>{damage.percentRange}%</span>
 	{#if damage.koChance}
 		<span class={koChanceClass}>{damage.koChance}</span>

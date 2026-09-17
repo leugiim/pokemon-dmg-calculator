@@ -107,10 +107,24 @@
 	}
 </script>
 
-<div class="flex items-start gap-2 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-sm">
+<div
+	class="flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-sm @3xl:flex-row @3xl:items-start @3xl:gap-2"
+>
 	<!-- Build form: avatar+types on top (centered), then species/forme, item, nature. The
-	     gender toggle is pinned to the right at the types' height, out of that flow. -->
-	<div class="relative flex w-48 shrink-0 flex-col gap-2">
+	     gender toggle is pinned to the right at the types' height, out of that flow. Full
+	     width while stacked, a fixed column alongside the other two once there's room for a
+	     row (see the root's own flex-col/flex-row switch).
+
+	     `@3xl` (a *container* query, off this card's own rendered width via the `@container`
+	     its parent `<section>` declares in +page.svelte — not `lg`, a *viewport* breakpoint):
+	     the page's own Team A/Team B grid already goes 2-up at `lg` (1024px), which more than
+	     halves each card's available width right as a viewport-only breakpoint would otherwise
+	     try to switch it to a row — cards would keep demanding their full 3-column layout width
+	     in barely half that much space, cramped and overflowing until the viewport got wide
+	     enough for even a halved column to fit it. A container query instead reads how much
+	     room *this card itself* actually has, so it only goes row-oriented once that's still
+	     true, regardless of which grid column it's in or how wide the viewport is. -->
+	<div class="relative flex w-full flex-col gap-2 @3xl:w-48 @3xl:shrink-0">
 		<div class="flex items-center gap-4">
 			<div class="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-gray-800">
 				{#if slot.species}
@@ -144,8 +158,12 @@
 		<NatureCombobox bind:selected={slot.nature} {disabled} />
 	</div>
 
-	<!-- Stats. -->
-	<div class="min-w-[320px] flex-1 border-x border-gray-800 px-2">
+	<!-- Stats. A horizontal divider while stacked, the usual vertical one
+	     between columns once `@3xl` switches this card to a row (see the
+	     root's own comment for why that's a container query, not `lg`). -->
+	<div
+		class="border-y border-gray-800 py-2 @3xl:min-w-[320px] @3xl:flex-1 @3xl:border-x @3xl:border-y-0 @3xl:px-2 @3xl:py-0"
+	>
 		<StatPointBars
 			species={slot.species}
 			nature={slot.nature}
