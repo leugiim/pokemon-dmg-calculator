@@ -3,7 +3,7 @@ import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
 import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
 import type { BattleFormat, Terrain, Weather } from '../stores/field.svelte';
-import type { MoveItem } from './moves';
+import { effectiveBasePower, type MoveItem } from './moves';
 import { attackerSideFlags, defenderSideFlags } from './allySupport';
 import { sideConditionFlags } from './sideConditions';
 import type { fieldAbilityFlags } from './fieldAbilities';
@@ -129,7 +129,11 @@ function toSmogonMove(move: MoveItem, attacker: TeamSlot, options: DamageOptions
 		ability: attacker.ability ?? undefined,
 		item: attacker.item?.name,
 		isCrit: options.isCrit,
-		hits: options.hits
+		hits: options.hits,
+		// Always routed through effectiveBasePower (a no-op for every move
+		// with no Champions-specific patch) rather than only passing
+		// `overrides` when one applies — see its own doc comment.
+		overrides: { basePower: effectiveBasePower(move) }
 	});
 }
 

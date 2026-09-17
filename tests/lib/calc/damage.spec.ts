@@ -163,6 +163,27 @@ describe('toSmogonPokemon', () => {
 });
 
 describe('computeDamage', () => {
+	it("uses Slash's Champions base power (80), not @smogon/calc's own SV value (70)", () => {
+		const attacker = buildSlot({
+			speciesName: 'Absol',
+			ability: 'Pressure',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Slash']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
+
+		expect(result.move.bp).toBe(80);
+	});
+
 	it('calculates on a Doubles field by default', () => {
 		const attacker = buildSlot({
 			speciesName: 'Slaking',

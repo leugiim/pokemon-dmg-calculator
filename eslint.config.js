@@ -10,6 +10,12 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	{
+		// Vendored third-party build output, tracked in git (unlike
+		// node_modules) so it isn't covered by .gitignore above — never
+		// hand-edited, see scripts/vendor-smogon-calc.sh.
+		ignores: ['vendor/**']
+	},
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

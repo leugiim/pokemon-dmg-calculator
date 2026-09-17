@@ -133,9 +133,9 @@ describe('speciesLabel', () => {
 });
 
 describe('formsOf', () => {
-	it('lists Normal plus every Mega/Gmax form for a species that has them', () => {
+	it('lists Normal plus every Mega form for a species that has them', () => {
 		const forms = formsOf(species('Charizard'));
-		expect(forms.map((f) => f.label)).toEqual(['Normal', 'Mega X', 'Mega Y', 'Gmax']);
+		expect(forms.map((f) => f.label)).toEqual(['Normal', 'Mega X', 'Mega Y']);
 		expect(forms[0].species.name).toBe('Charizard');
 	});
 
@@ -151,12 +151,13 @@ describe('formsOf', () => {
 		]);
 	});
 
-	it("doesn't fold a regional form into its root species' Mega/Gmax list", () => {
-		// Meowth-Gmax belongs to base Meowth, not to Galarian Meowth.
+	it("doesn't fold a regional form into its root species' Mega list", () => {
+		// Meowth-Galar shares Meowth's baseSpecies grouping but has no Mega
+		// of its own to inherit — and neither does base Meowth itself.
 		expect(formsOf(species('Meowth-Galar'))).toEqual([
 			{ label: 'Normal', species: species('Meowth-Galar') }
 		]);
-		expect(formsOf(species('Meowth')).map((f) => f.label)).toEqual(['Normal', 'Gmax']);
+		expect(formsOf(species('Meowth'))).toEqual([{ label: 'Normal', species: species('Meowth') }]);
 	});
 
 	it('hand-rolls Shield/Blade for Aegislash, whose data has no plain "Aegislash" to split against', () => {

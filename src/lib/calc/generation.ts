@@ -10,6 +10,19 @@ export const GEN_NUM = 9;
 export const gen = Generations.get(GEN_NUM);
 
 /**
+ * `@smogon/calc`'s own dedicated Pokémon Champions data set — a genuinely
+ * separate generation slot (`0`, not a variant of gen 9) that a handful of
+ * moves' base power has diverged from mainline Scarlet/Violet on
+ * (`calc/moves.ts`'s `effectiveBasePower`, ADR-0005). Deliberately **not**
+ * used as `gen`/`GEN_NUM` itself: Champions' own roster is a much smaller,
+ * still-growing subset of SV's — 359 species and 526 moves against SV's
+ * 1406 and 942 at the time this was checked — so building the species/move/
+ * item/ability pickers off it would silently drop most of what this app
+ * currently supports, not just fix move power.
+ */
+export const championsGen = Generations.get(0);
+
+/**
  * All species available in this generation, sorted alphabetically —
  * excluding CAP (fan-made) mons and other non-standard entries that
  * aren't real, in-game-obtainable Pokémon. See {@link NONSTANDARD_SPECIES}.
@@ -27,20 +40,26 @@ function find(name: string): SpeciesItem {
 }
 
 /**
- * True for Mega Evolutions and Gigantamax forms — battle-time
- * transformations you'd normally trigger with a held Mega Stone or the
- * Dynamax mechanic, not a distinct Pokémon you'd catch and pick from a
- * dex list the way a regional form (Alolan, Galarian, Hisuian...) is.
- * This is the generic, no-hand-rolling-needed case; anything caught by
- * {@link FORM_FAMILIES} instead is handled there and never reaches this.
+ * True for a Mega Evolution — a battle-time transformation you'd normally
+ * trigger by holding its Mega Stone, not a distinct Pokémon you'd catch and
+ * pick from a dex list the way a regional form (Alolan, Galarian,
+ * Hisuian...) is. This is the generic, no-hand-rolling-needed case;
+ * anything caught by {@link FORM_FAMILIES} instead is handled there and
+ * never reaches this.
+ *
+ * Gigantamax forms used to belong here too, but `@smogon/calc`'s gen 9 data
+ * no longer has any — Gigantamax was never actually available in
+ * Scarlet/Violet (it's a Sword/Shield-only mechanic), and upstream removed
+ * the SV entries that had incorrectly carried it over (`vendor/smogon-calc`,
+ * ADR-0005).
  */
 function isBattleOnlyForme(species: SpeciesItem): boolean {
 	if (!species.baseSpecies) return false;
 	const suffix = species.name.slice(species.baseSpecies.length + 1);
-	return suffix === 'Gmax' || suffix === 'Mega' || suffix.startsWith('Mega-');
+	return suffix === 'Mega' || suffix.startsWith('Mega-');
 }
 
-/** "Mega-X" -> "Mega X", "Mega" -> "Mega", "Gmax" -> "Gmax". */
+/** "Mega-X" -> "Mega X", "Mega" -> "Mega". */
 function formeLabel(species: SpeciesItem): string {
 	return species.name.slice(species.baseSpecies!.length + 1).replace('-', ' ');
 }
@@ -49,8 +68,7 @@ const FORM_ORDER: Record<string, number> = {
 	Mega: 0,
 	'Mega X': 1,
 	'Mega Y': 2,
-	'Mega Z': 3,
-	Gmax: 4
+	'Mega Z': 3
 };
 
 const battleFormsByBase = new Map<string, { label: string; species: SpeciesItem }[]>();
@@ -98,7 +116,7 @@ function typePlateFamily(base: string): { label: string; name: string }[] {
  * `baseSpecies`-suffix rule above — because the data doesn't cleanly
  * support deriving them (Aegislash has no plain "Aegislash" to be a
  * `baseSpecies` for either of its formes), or because it's not a
- * battle-only Mega/Gmax transformation but the same "pick species, then
+ * battle-only Mega Evolution but the same "pick species, then
  * pick which forme" UI still fits: a stance/state change (Aegislash,
  * Darmanitan, Cherrim, Castform, Morpeko, Eiscue, Minior, Mimikyu,
  * Wishiwashi, Meloetta, Cramorant, Palafin, Terapagos), an
@@ -237,9 +255,7 @@ const FORM_FAMILIES: { label: string; name: string }[][] = [
 	],
 	[
 		{ label: 'Single Strike', name: 'Urshifu' },
-		{ label: 'Rapid Strike', name: 'Urshifu-Rapid-Strike' },
-		{ label: 'Single Strike Gmax', name: 'Urshifu-Gmax' },
-		{ label: 'Rapid Strike Gmax', name: 'Urshifu-Rapid-Strike-Gmax' }
+		{ label: 'Rapid Strike', name: 'Urshifu-Rapid-Strike' }
 	],
 	[
 		{ label: 'Teal', name: 'Ogerpon' },
@@ -253,9 +269,7 @@ const FORM_FAMILIES: { label: string; name: string }[][] = [
 	],
 	[
 		{ label: 'Amped', name: 'Toxtricity' },
-		{ label: 'Low Key', name: 'Toxtricity-Low-Key' },
-		{ label: 'Amped Gmax', name: 'Toxtricity-Gmax' },
-		{ label: 'Low Key Gmax', name: 'Toxtricity-Low-Key-Gmax' }
+		{ label: 'Low Key', name: 'Toxtricity-Low-Key' }
 	],
 	[
 		{ label: 'Red-Striped', name: 'Basculin' },
@@ -407,7 +421,7 @@ export function speciesLabel(species: SpeciesItem): string {
 /**
  * The selectable forms for a species: either its hand-rolled
  * {@link FORM_FAMILIES} entry, or (the vast majority of species) "Normal"
- * plus any Mega Evolutions/Gigantamax forms sharing its identity. A
+ * plus any Mega Evolutions sharing its identity. A
  * species with none of those just gets a single "Normal" entry back —
  * callers should disable the picker in that case.
  */

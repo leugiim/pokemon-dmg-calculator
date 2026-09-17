@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MoveItem } from '$lib/calc/moves';
+	import { effectiveBasePower, type MoveItem } from '$lib/calc/moves';
 	import type { TeamSlot } from '$lib/stores/team.svelte';
 	import MoveCategoryIcon from '../display/MoveCategoryIcon.svelte';
 	import MoveCombobox from '../combobox/MoveCombobox.svelte';
@@ -56,7 +56,7 @@
 			{/if}
 		</div>
 		<span class="w-8 shrink-0 text-right text-[11px] font-semibold text-gray-500">
-			{selected?.basePower || '–'}
+			{(selected && effectiveBasePower(selected)) || '–'}
 		</span>
 	</div>
 </div>

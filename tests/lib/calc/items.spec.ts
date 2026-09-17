@@ -22,7 +22,7 @@ describe('megaStoneFor', () => {
 		expect(megaStoneFor(species('Garchomp'))).toBeNull();
 	});
 
-	it('is null for a battle-only forme that is not a Mega Evolution (Gigantamax)', () => {
-		expect(megaStoneFor(species('Charizard-Gmax'))).toBeNull();
+	it('is null for a species with a baseSpecies that is not a Mega Evolution (a regional forme)', () => {
+		expect(megaStoneFor(species('Meowth-Galar'))).toBeNull();
 	});
 });
