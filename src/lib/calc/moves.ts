@@ -1,4 +1,4 @@
-import { gen } from './generation';
+import { championsGen, gen } from './generation';
 
 /**
  * All moves available in this generation, sorted alphabetically —
@@ -120,4 +120,27 @@ export function multiHitRange(move: MoveItem): MultiHitRange | null {
  */
 export function hasDamageComponent(move: MoveItem): boolean {
 	return move.category !== 'Status';
+}
+
+/**
+ * `championsGen`'s own base power for every move it has data for, keyed by
+ * name — built once from `@smogon/calc`'s real Pokémon Champions data set,
+ * not hand-curated (ADR-0005). A move `championsGen` includes but hasn't
+ * had a Champions-specific balance patch on has the exact same base power
+ * here as it does in `gen` (SV) — `championsGen`'s own data is SV's,
+ * patched only where Champions has actually diverged — so looking this map
+ * up unconditionally in `effectiveBasePower` is a safe no-op for every move
+ * outside that patch.
+ */
+const championsBasePowerByName = new Map([...championsGen.moves].map((m) => [m.name, m.basePower]));
+
+/**
+ * A move's real, current base power: `championsGen`'s own value (Pokémon
+ * Champions) when it has one, otherwise `@smogon/calc`'s SV value — falling
+ * back to SV covers every move Champions doesn't have yet (its roster is
+ * still a subset of SV's, see `generation.ts`'s `championsGen`), not just
+ * ones with no Champions-specific patch.
+ */
+export function effectiveBasePower(move: MoveItem): number {
+	return championsBasePowerByName.get(move.name) ?? move.basePower;
 }

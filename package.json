@@ -51,6 +51,6 @@
 	},
 	"dependencies": {
 		"@pkmn/sets": "^5.2.0",
-		"@smogon/calc": "^0.11.0"
+		"@smogon/calc": "file:vendor/smogon-calc"
 	}
 }

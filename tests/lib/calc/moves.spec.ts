@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	allMoves,
+	effectiveBasePower,
 	hasDamageComponent,
 	isAllAdjacentTarget,
 	isAllyOnlyTarget,
@@ -154,6 +155,27 @@ describe('multiHitRange', () => {
 			expect(multiHitRange(move(name))).toBeNull();
 		}
 	);
+});
+
+describe('effectiveBasePower', () => {
+	it("is @smogon/calc's own SV basePower for a move with no Champions-specific patch", () => {
+		expect(effectiveBasePower(move('Flamethrower'))).toBe(move('Flamethrower').basePower);
+	});
+
+	it("is 80 for Slash, patched up from SV's 70 in vendor/smogon-calc's Champions data", () => {
+		expect(move('Slash').basePower).toBe(70);
+		expect(effectiveBasePower(move('Slash'))).toBe(80);
+	});
+
+	it("is 120 for Mountain Gale, patched up from SV's 100", () => {
+		expect(move('Mountain Gale').basePower).toBe(100);
+		expect(effectiveBasePower(move('Mountain Gale'))).toBe(120);
+	});
+
+	it("is 170 for Meteor Assault, patched up from SV's 150 — a second, independent spot check", () => {
+		expect(move('Meteor Assault').basePower).toBe(150);
+		expect(effectiveBasePower(move('Meteor Assault'))).toBe(170);
+	});
 });
 
 describe('hasDamageComponent', () => {
