@@ -6,6 +6,7 @@
 	import FieldConditionsPicker from '$lib/components/conditions/FieldConditionsPicker.svelte';
 	import SideConditionsToggles from '$lib/components/conditions/SideConditionsToggles.svelte';
 	import TeamSlotCard from '$lib/components/team/TeamSlotCard.svelte';
+	import { providesIntimidate } from '$lib/calc/sideConditions';
 
 	const teamADisabled = $derived(!teamA[0].species && !teamA[1].species);
 	const teamBDisabled = $derived(!teamB[0].species && !teamB[1].species);
@@ -24,7 +25,7 @@
 				<TeamSlotCard
 					bind:slot={teamA[i]}
 					tailwind={allySupport.teamA.tailwind}
-					intimidated={sideConditions.teamB.intimidate}
+					intimidated={providesIntimidate(teamB, sideConditions.teamB)}
 				/>
 			{/each}
 		</section>
@@ -35,7 +36,7 @@
 				<TeamSlotCard
 					bind:slot={teamB[i]}
 					tailwind={allySupport.teamB.tailwind}
-					intimidated={sideConditions.teamA.intimidate}
+					intimidated={providesIntimidate(teamA, sideConditions.teamA)}
 				/>
 			{/each}
 		</section>
@@ -54,6 +55,7 @@
 				<SideConditionsToggles
 					bind:conditions={sideConditions.teamA}
 					bind:allySupport={allySupport.teamA}
+					slots={teamA}
 					disabled={teamADisabled}
 				/>
 				<DamageMatrix teamId="teamA" {sides} {allySupport} {sideConditions} {field} />
@@ -70,6 +72,7 @@
 				<SideConditionsToggles
 					bind:conditions={sideConditions.teamB}
 					bind:allySupport={allySupport.teamB}
+					slots={teamB}
 					disabled={teamBDisabled}
 				/>
 				<DamageMatrix teamId="teamB" {sides} {allySupport} {sideConditions} {field} />

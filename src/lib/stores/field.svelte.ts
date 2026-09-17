@@ -6,6 +6,10 @@ import type { State } from '@smogon/calc';
 // unexported module path.
 export type Weather = NonNullable<State.Field['weather']>;
 export type Terrain = NonNullable<State.Field['terrain']>;
+// Unlike Weather/Terrain, `@smogon/calc`'s own `gameType` is never nullable
+// (its `Field` constructor defaults an omitted one to 'Singles') — there's
+// no "none" state to model, so no `NonNullable` needed here.
+export type BattleFormat = State.Field['gameType'];
 
 /**
  * Field-wide weather and terrain (`@smogon/calc`'s own `Field`, #24) —
@@ -31,6 +35,18 @@ export type Terrain = NonNullable<State.Field['terrain']>;
  * Auto/On/Off convention `TeamAllySupport`'s own static flags use.
  */
 export interface FieldConditions {
+	/**
+	 * `@smogon/calc`'s own `Field.gameType` — doesn't change the roster
+	 * shape (this app is always a fixed 2vs2 Pokemon on each side, see
+	 * `CONTEXT.md`), only which of its own mechanics that key off `gameType`
+	 * apply to a given calculation: chiefly the Doubles spread-damage
+	 * modifier on `allAdjacent`/`allAdjacentFoes` moves (Earthquake, Rock
+	 * Slide, ...), which 'Singles' turns off. Defaults to 'Doubles' — this
+	 * app modeled Doubles exclusively before this field existed, so that's
+	 * the behavior every existing team/matchup should keep seeing unless the
+	 * user opts into 'Singles'.
+	 */
+	battleFormat: BattleFormat;
 	weather: Weather | null;
 	terrain: Terrain | null;
 	gravity: boolean;
@@ -43,6 +59,7 @@ export interface FieldConditions {
 
 export function defaultFieldConditions(): FieldConditions {
 	return {
+		battleFormat: 'Doubles',
 		weather: null,
 		terrain: null,
 		gravity: false,
@@ -72,5 +89,12 @@ export const WEATHER_OPTIONS: Weather[] = [
 ];
 
 export const TERRAIN_OPTIONS: Terrain[] = ['Electric', 'Grassy', 'Psychic', 'Misty'];
+
+/**
+ * Unlike Weather/Terrain (a mutually-exclusive group with a "none" state),
+ * one of these two is always active — there's no `toggleX`-style
+ * click-to-deselect for `battleFormat`, see `FieldConditionsPicker`.
+ */
+export const BATTLE_FORMAT_OPTIONS: BattleFormat[] = ['Singles', 'Doubles'];
 
 export const field = $state<FieldConditions>(defaultFieldConditions());
