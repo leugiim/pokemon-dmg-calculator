@@ -100,6 +100,9 @@ point-in-time damage calculator, same as its references.
   mechanics and focus on the UI and the doubles-specific logic (2×2
   matrix, ally support). Vendored from a pinned upstream commit rather
   than installed from npm — see `docs/adr/0005-vendor-smogon-calc.md`.
+- **Common Sets** (the button next to "Import PokePaste") are vendored
+  from the [NCP VGC Damage Calculator](https://github.com/nerd-of-now/NCP-VGC-Damage-Calculator)'s
+  own curated set library — see `docs/adr/0006-vendor-common-sets.md`.
 - Pokémon sprites served from Pokémon Showdown's public CDN
   (`play.pokemonshowdown.com/sprites`), no self-hosted assets.
 - **pnpm** as the package manager.

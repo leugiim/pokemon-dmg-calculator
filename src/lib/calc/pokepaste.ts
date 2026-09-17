@@ -54,8 +54,20 @@ export function exportPokePaste(slot: TeamSlot): string {
 	return Sets.exportSet(set).trim();
 }
 
-/** The first exact (or, failing that, case-insensitive) name match in `items` — this app's own data, keyed by display name, matches how `@pkmn/sets` hands back an unresolved paste's fields (see `exportPokePaste`'s own doc comment). */
-function findByName<T extends { name: string }>(items: readonly T[], name: string): T | undefined {
+/**
+ * The first exact (or, failing that, case-insensitive) name match in
+ * `items` — this app's own data, keyed by display name, matches how
+ * `@pkmn/sets` hands back an unresolved paste's fields (see
+ * `exportPokePaste`'s own doc comment). Exported for `commonSets.ts`,
+ * which resolves the same kind of free-text name against the same data —
+ * a common (vendored, third-party) set's item/ability/nature/move names
+ * are no more guaranteed to match this app's own casing than a pasted
+ * one's are.
+ */
+export function findByName<T extends { name: string }>(
+	items: readonly T[],
+	name: string
+): T | undefined {
 	return (
 		items.find((item) => item.name === name) ??
 		items.find((item) => item.name.toLowerCase() === name.toLowerCase())

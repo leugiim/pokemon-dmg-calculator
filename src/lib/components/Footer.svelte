@@ -2,7 +2,8 @@
 	Credits are load-bearing, not decorative: @smogon/calc and @pkmn/sets are
 	the actual dependencies this app's damage math runs on (see package.json,
 	README.md's "Tech stack"), and the NCP VGC Damage Calculator is this
-	app's own stated inspiration (README.md's "Motivation") — this footer is
+	app's own stated inspiration (README.md's "Motivation") *and* the source
+	of the Common Sets feature's vendored data (ADR-0006) — this footer is
 	the one place a visitor sees any of that.
 -->
 <!-- No horizontal padding of its own — nests inside +page.svelte's own
@@ -50,7 +51,7 @@
 		.
 	</p>
 	<p class="mt-1">
-		Inspired by the
+		Inspired by, and drawing its Common Sets library from, the
 		<a
 			href="https://nerd-of-now.github.io/NCP-VGC-Damage-Calculator/"
 			target="_blank"
