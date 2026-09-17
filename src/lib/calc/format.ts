@@ -41,6 +41,20 @@ export function totalStatPoints(sp: StatPoints): number {
 	return sp.hp + sp.atk + sp.def + sp.spa + sp.spd + sp.spe;
 }
 
+/**
+ * A compact "32 Atk / 32 Spe" spread summary, in the same order
+ * `STAT_ORDER` lists stats in — omits every stat with 0 SP invested, and
+ * is `'—'` for an all-zero spread. Used for a short-form summary display
+ * (`CommonSetsModal`), not `StatPointBars`' own interactive bars, which
+ * shows every stat regardless.
+ */
+export function formatStatPoints(sp: StatPoints): string {
+	const parts = STAT_ORDER.filter((stat) => sp[stat] > 0).map(
+		(stat) => `${sp[stat]} ${STAT_LABELS[stat]}`
+	);
+	return parts.length > 0 ? parts.join(' / ') : '—';
+}
+
 export interface NatureInfo {
 	name: NatureName;
 	/** Stat this nature raises by 10% — same as `minus` for a neutral nature. */

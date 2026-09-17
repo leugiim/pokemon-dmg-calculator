@@ -8,6 +8,7 @@ import {
 	emptyStatBoosts,
 	boostedStat,
 	clampBoostStage,
+	formatStatPoints,
 	MAX_SP_TOTAL,
 	MAX_SP_PER_STAT,
 	MAX_BOOST_STAGE,
@@ -84,6 +85,18 @@ describe('stat points', () => {
 		// You can't just max every stat (6 * 32 = 192) — the 66 total is
 		// what actually limits the allocation.
 		expect(MAX_SP_TOTAL).toBeLessThan(6 * MAX_SP_PER_STAT);
+	});
+});
+
+describe('formatStatPoints', () => {
+	it('is an em dash for an all-zero spread', () => {
+		expect(formatStatPoints(emptyStatPoints())).toBe('—');
+	});
+
+	it('omits every stat with 0 SP, in STAT_ORDER order', () => {
+		expect(formatStatPoints({ hp: 2, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 })).toBe(
+			'2 HP / 32 Atk / 32 Spe'
+		);
 	});
 });
 

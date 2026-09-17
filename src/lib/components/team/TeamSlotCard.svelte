@@ -2,10 +2,12 @@
 	import type { TeamSlot } from '$lib/stores/team.svelte';
 	import type { SpeciesItem } from '$lib/calc/generation';
 	import { abilitiesOf } from '$lib/calc/abilities';
+	import { applyCommonSet, hasCommonSets, type CommonSet } from '$lib/calc/commonSets';
 	import { megaStoneFor } from '$lib/calc/items';
 	import { exportPokePaste, importPokePaste } from '$lib/calc/pokepaste';
 	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
 	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
+	import CommonSetsModal from './CommonSetsModal.svelte';
 	import FormeCombobox from '../combobox/FormeCombobox.svelte';
 	import GenderToggle from './GenderToggle.svelte';
 	import ItemCombobox from '../combobox/ItemCombobox.svelte';
@@ -105,6 +107,12 @@
 		importText = '';
 		importError = null;
 	}
+
+	let commonSetsOpen = $state(false);
+
+	function selectCommonSet(set: CommonSet) {
+		applyCommonSet(slot, set);
+	}
 </script>
 
 <div
@@ -201,6 +209,14 @@
 			>
 				Import PokePaste
 			</button>
+			<button
+				type="button"
+				disabled={!hasCommonSets(slot.species)}
+				onclick={() => (commonSetsOpen = true)}
+				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
+			>
+				Common Sets
+			</button>
 		</div>
 		{#if pasteFallback}
 			<textarea
@@ -242,3 +258,5 @@
 		{/if}
 	</div>
 </div>
+
+<CommonSetsModal bind:open={commonSetsOpen} species={slot.species} onselect={selectCommonSet} />
