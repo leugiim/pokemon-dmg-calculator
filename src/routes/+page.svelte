@@ -6,6 +6,7 @@
 	import FieldConditionsPicker from '$lib/components/conditions/FieldConditionsPicker.svelte';
 	import SideConditionsToggles from '$lib/components/conditions/SideConditionsToggles.svelte';
 	import TeamSlotCard from '$lib/components/team/TeamSlotCard.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import { providesIntimidate } from '$lib/calc/sideConditions';
 
 	const teamADisabled = $derived(!teamA[0].species && !teamA[1].species);
@@ -14,12 +15,12 @@
 
 <div class="flex min-h-screen w-full flex-col gap-2 bg-gray-950 px-4 py-8 sm:px-8 lg:px-16">
 	<header class="text-center">
-		<h1 class="text-2xl font-bold text-gray-100">Pokemon DMG Calculator</h1>
+		<h1 class="text-2xl font-bold text-gray-100">Pokémon DMG Calculator</h1>
 		<p class="text-sm text-gray-300">2v2 VGC damage calculator</p>
 	</header>
 
 	<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_1fr]">
-		<section class="flex flex-col gap-4">
+		<section class="@container flex flex-col gap-4">
 			<h2 class="text-center text-sm font-semibold text-gray-300">Team A</h2>
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard
@@ -30,7 +31,7 @@
 			{/each}
 		</section>
 
-		<section class="flex flex-col gap-4">
+		<section class="@container flex flex-col gap-4">
 			<h2 class="text-center text-sm font-semibold text-gray-300">Team B</h2>
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard
@@ -79,4 +80,6 @@
 			</div>
 		</section>
 	</div>
+
+	<Footer />
 </div>

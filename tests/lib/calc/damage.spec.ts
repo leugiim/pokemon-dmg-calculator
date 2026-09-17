@@ -160,23 +160,6 @@ describe('toSmogonPokemon', () => {
 		expect(mon.boosts.spe).toBe(-1);
 		expect(mon.boosts.def).toBe(0);
 	});
-
-	it("layers `boostOverrides` on top of the slot's own stages rather than replacing them wholesale", () => {
-		const slot = buildSlot({
-			speciesName: 'Garchomp',
-			ability: 'Rough Skin',
-			natureName: 'Jolly',
-			statPoints: {},
-			moveNames: ['Earthquake']
-		});
-		slot.boosts.atk = 2;
-		slot.boosts.def = 1;
-
-		const mon = toSmogonPokemon(slot, { atk: -1 });
-
-		expect(mon.boosts.atk).toBe(-1);
-		expect(mon.boosts.def).toBe(1);
-	});
 });
 
 describe('computeDamage', () => {

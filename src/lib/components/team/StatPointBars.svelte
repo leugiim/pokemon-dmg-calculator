@@ -34,7 +34,7 @@
 		boosts: StatBoosts;
 		/** Whether this Pokemon's team currently has Tailwind up — doubles the displayed Speed only, a battle-time buff rather than anything `calcChampionsStat` itself computes. */
 		tailwind?: boolean;
-		/** Whether the *opposing* team currently has Intimidate up (`TeamSideConditions.intimidate`) — knocks 1 more stage off the displayed Atk on top of `boosts.atk`. */
+		/** Whether the *opposing* team currently has Intimidate up (`TeamSideConditions.intimidate`) — see the effect below for what this does to `boosts.atk`. */
 		intimidated?: boolean;
 	} = $props();
 
@@ -62,11 +62,35 @@
 		boosts[stat] = clampBoostStage(value);
 	}
 
-	/** This row's *effective* stat stage: the manually-picked `boosts` value, plus Intimidate's flat -1 to Atk when `intimidated` (see `matrix.ts`'s own simplification) — clamped the same way a real battle would clamp it at ±6. */
-	function effectiveStage(stat: BoostableStat): number {
-		const intimidateAdjustment = stat === 'atk' && intimidated ? 1 : 0;
-		return clampBoostStage(boosts[stat] - intimidateAdjustment);
-	}
+	/**
+	 * Intimidate is a real, permanent Atk stage change here — not a
+	 * per-calculation overlay computed on top of `boosts.atk` the way
+	 * `matrix.ts` used to (see `TeamSideConditions.intimidate`'s own doc
+	 * comment) — so the moment the opposing team's Intimidate flips on,
+	 * this Pokemon's own Atk stage actually drops by 1, same as any other
+	 * stage-changing event (Dragon Dance, ...): it shows up in the stage
+	 * stepper itself, not just the final stat number, and a further
+	 * manual stage change works from whatever it's become since. Flipping
+	 * Intimidate back off restores exactly the 1 stage it took.
+	 *
+	 * `boosts` is reset to a brand-new object on a genuinely different
+	 * species (`TeamSlot.species`'s own setter) — tracked via `lastBoosts`
+	 * so a still-true `intimidated` gets (re)applied to that fresh build
+	 * too, rather than only reacting the next time `intimidated` itself
+	 * flips.
+	 */
+	let lastBoosts: StatBoosts | undefined;
+	let intimidateApplied = false;
+	$effect(() => {
+		if (boosts !== lastBoosts) {
+			lastBoosts = boosts;
+			intimidateApplied = false;
+		}
+		if (intimidated !== intimidateApplied) {
+			boosts.atk = clampBoostStage(boosts.atk + (intimidated ? -1 : 1));
+			intimidateApplied = intimidated;
+		}
+	});
 
 	/** `calcChampionsStat`'s value from Stat Points + nature alone — the baseline every color/tooltip below compares the final number against. */
 	function rawStat(stat: StatID): number | null {
@@ -75,20 +99,22 @@
 	}
 
 	/**
-	 * The stat number shown on the right: `rawStat`, adjusted by
-	 * `effectiveStage` for every stat but HP (which no stage ever
-	 * touches), then Speed doubled on top while Tailwind is up (a separate
-	 * multiplier from stat stages entirely, see `tailwind` above).
+	 * The stat number shown on the right: `rawStat`, adjusted by `boosts`
+	 * for every stat but HP (which no stage ever touches — Intimidate is
+	 * already folded into `boosts.atk` itself by the effect above, not a
+	 * separate adjustment applied here), then Speed doubled on top while
+	 * Tailwind is up (a separate multiplier from stat stages entirely, see
+	 * `tailwind` above).
 	 */
 	function displayedStat(stat: StatID): number | null {
 		const raw = rawStat(stat);
 		if (raw === null) return null;
 		if (!isBoostable(stat)) return raw;
-		const boosted = boostedStat(raw, effectiveStage(stat));
+		const boosted = boostedStat(raw, boosts[stat]);
 		return stat === 'spe' && tailwind ? boosted * 2 : boosted;
 	}
 
-	/** Red once anything (stage, Intimidate, Tailwind) pushes the final number above `rawStat`, blue once it pushes it below, gray when Stat Points + nature is all that's going on. */
+	/** Red once anything (stage, Tailwind) pushes the final number above `rawStat`, blue once it pushes it below, gray when Stat Points + nature is all that's going on. */
 	function statColorClass(stat: StatID): string {
 		const raw = rawStat(stat);
 		const final = displayedStat(stat);
@@ -99,16 +125,22 @@
 	/** Whether this row's final number differs from its plain unboosted value — drives the tooltip. */
 	function isModified(stat: StatID): boolean {
 		if (!isBoostable(stat)) return false;
-		return effectiveStage(stat) !== 0 || (stat === 'spe' && tailwind);
+		return boosts[stat] !== 0 || (stat === 'spe' && tailwind);
 	}
 
+	/**
+	 * `boosts[stat]` no longer distinguishes a manual stage change from
+	 * Intimidate's own — they're the same real stage once the effect above
+	 * applies it — so this shows the merged stage plus, for Atk while
+	 * `intimidated`, a note that Intimidate is (at least partly) why.
+	 */
 	function modifierTooltip(stat: StatID): string | undefined {
 		if (!isModified(stat)) return undefined;
 		const parts: string[] = [];
 		if (isBoostable(stat) && boosts[stat] !== 0) {
 			parts.push(`${boosts[stat] > 0 ? '+' : ''}${boosts[stat]} stage`);
 		}
-		if (stat === 'atk' && intimidated) parts.push('Intimidate (-1 stage)');
+		if (stat === 'atk' && intimidated) parts.push('includes Intimidate');
 		if (stat === 'spe' && tailwind) parts.push('Tailwind (×2)');
 		return parts.join(', ');
 	}
