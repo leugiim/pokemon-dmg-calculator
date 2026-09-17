@@ -16,6 +16,15 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	server: {
+		watch: {
+			// vendor/ is generated third-party output (ADR-0005, ADR-0006),
+			// never hand-edited — nothing there ever needs HMR to react to
+			// it, and excluding it trims this project's own contribution to
+			// this host's shared per-user inotify watch budget.
+			ignored: ['**/vendor/**']
+		}
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
