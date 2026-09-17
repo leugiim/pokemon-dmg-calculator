@@ -1,4 +1,4 @@
-import type { TeamSideConditions } from '../stores/team.svelte';
+import type { TeamSideConditions, TeamSlot } from '../stores/team.svelte';
 
 /**
  * The `@smogon/calc` `defenderSide` flags a team's shared side conditions
@@ -25,4 +25,21 @@ export function sideConditionFlags(conditions: TeamSideConditions) {
 		isSR: conditions.stealthRock,
 		spikes: conditions.spikes
 	};
+}
+
+/**
+ * Whether Intimidate is currently up for `slots`' own team: `conditions`'
+ * manual Auto/On/Off override when set, else auto-derived from whether
+ * either of `slots` (this team's own two Pokemon, not just one ally) has
+ * the Intimidate ability equipped — same Auto/On/Off convention field
+ * abilities (`providesFieldAbility`) and static ally support
+ * (`providesStaticSupport`) use, just scoped to the team's own roster
+ * rather than one specific ally slot, since either teammate having
+ * Intimidate puts it up for the whole side.
+ */
+export function providesIntimidate(
+	slots: [TeamSlot, TeamSlot],
+	conditions: TeamSideConditions
+): boolean {
+	return conditions.intimidate ?? slots.some((slot) => slot.ability === 'Intimidate');
 }

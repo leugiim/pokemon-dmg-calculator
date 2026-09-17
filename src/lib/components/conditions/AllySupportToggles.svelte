@@ -6,6 +6,8 @@
 		STATIC_ALLY_SUPPORT_FLAGS,
 		type StaticAllySupportFlag
 	} from '$lib/calc/allySupport';
+	import { resetOverrideOnAutoChange } from '$lib/calc/autoOverride.svelte';
+	import ToggleButton from '../ui/ToggleButton.svelte';
 
 	// support is $bindable: this two-way-binds into support.friendGuard /
 	// .battery / ... via child bind: directives — see +page.svelte (where
@@ -30,6 +32,18 @@
 		return slots.find((slot) => providesStaticSupport(slot, flag)) ?? null;
 	}
 
+	// Forcing a static ally-support flag On/Off only lasts as long as the
+	// team state that made it worth forcing — clears back to Auto the
+	// moment a Pokemon with (or without) that flag's own ability actually
+	// gets selected onto or off this team, though it can always be forced
+	// again afterward (`forceSupport`, below).
+	for (const flag of STATIC_ALLY_SUPPORT_FLAGS) {
+		resetOverrideOnAutoChange(
+			() => autoProvider(flag) !== null,
+			() => (support[flag] = null)
+		);
+	}
+
 	/**
 	 * Describes `flag`'s *actual* current state — not just what Auto mode
 	 * would derive — so a manual On/Off override doesn't leave the tooltip
@@ -45,24 +59,38 @@
 		const active = providesStaticSupport(provider ?? slots[0], flag, support);
 		return `${ability}: forced ${active ? 'on' : 'off'} for the whole team`;
 	}
+
+	/** `flag`'s current effective state — `support`'s own override, or (while unset) whether `autoProvider` found a teammate that grants it. */
+	function effectiveSupport(flag: StaticAllySupportFlag): boolean {
+		return support[flag] ?? autoProvider(flag) !== null;
+	}
+
+	/**
+	 * Forces `flag`'s own override to the opposite of whatever it
+	 * currently, effectively shows — same convention
+	 * `FieldConditionsPicker`'s field abilities and `SideConditionsToggles`'
+	 * Intimidate use in place of the 3-option `<select>` this replaced: while
+	 * untouched the button tracks Auto live, one click pins it to a manual
+	 * override, and `resetOverrideOnAutoChange` above clears that override
+	 * back to Auto automatically once it stops matching the team's own
+	 * state — forcing it again afterward is always still one click away.
+	 */
+	function forceSupport(flag: StaticAllySupportFlag) {
+		support[flag] = !effectiveSupport(flag);
+	}
 </script>
 
 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400">
-	<span class="font-medium text-gray-300">Ally support</span>
 	{#each STATIC_ALLY_SUPPORT_FLAGS as flag (flag)}
 		{@const ability = staticAllySupportAbility(flag)}
-		<label class="flex items-center gap-1" title={tooltip(flag)}>
+		<ToggleButton
+			class="rounded border border-gray-700"
+			active={effectiveSupport(flag)}
+			{disabled}
+			onclick={() => forceSupport(flag)}
+			title={tooltip(flag)}
+		>
 			{ability}
-			<select
-				class="rounded bg-gray-800 px-1 py-0.5 text-[10px] text-gray-200 disabled:opacity-30"
-				aria-label="{ability} override"
-				{disabled}
-				bind:value={support[flag]}
-			>
-				<option value={null}>Auto</option>
-				<option value={true}>On</option>
-				<option value={false}>Off</option>
-			</select>
-		</label>
+		</ToggleButton>
 	{/each}
 </div>

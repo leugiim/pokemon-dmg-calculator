@@ -72,8 +72,6 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<h3 class="text-xs font-semibold text-gray-300">Damage matrix</h3>
-
 	{#if !hasOwnSpecies}
 		<p class="text-[11px] text-gray-500">Pick a species for at least one Pokémon.</p>
 	{:else}

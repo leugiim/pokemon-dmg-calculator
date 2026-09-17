@@ -1,6 +1,23 @@
 import { gen } from './generation';
+import type { SpeciesItem } from './generation';
 
 /** All held items available in this generation, sorted alphabetically. */
 export const allItems = [...gen.items].sort((a, b) => a.name.localeCompare(b.name));
 
 export type HeldItem = (typeof allItems)[number];
+
+/**
+ * The Mega Stone that evolves `species`' own base species into exactly
+ * `species` — `null` for anything that isn't a Mega Evolution (or one
+ * this generation's data doesn't carry a stone for, e.g. Meowstic's
+ * hand-rolled gendered Mega, `generation.ts`'s `genderPairOf`). Each
+ * `@smogon/calc` `Item.megaStone` is keyed by *base* species name (e.g.
+ * `{ Charizard: 'Charizard-Mega-X' }`), covering every stone in one map
+ * rather than one item per base species, so this checks each item's own
+ * entry for `species.baseSpecies` against `species.name` itself rather
+ * than assuming a 1:1 item/species split.
+ */
+export function megaStoneFor(species: SpeciesItem): HeldItem | null {
+	if (!species.baseSpecies) return null;
+	return allItems.find((item) => item.megaStone?.[species.baseSpecies!] === species.name) ?? null;
+}

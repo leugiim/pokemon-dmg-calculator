@@ -2,7 +2,7 @@ import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smog
 import { GEN_NUM } from './generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatBoosts, type StatPoints } from './format';
 import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
-import type { Terrain, Weather } from '../stores/field.svelte';
+import type { BattleFormat, Terrain, Weather } from '../stores/field.svelte';
 import type { MoveItem } from './moves';
 import { attackerSideFlags, defenderSideFlags } from './allySupport';
 import { sideConditionFlags } from './sideConditions';
@@ -111,6 +111,12 @@ export interface DamageOptions {
 	 * "omit to fall back to" — omitting this just means none are active.
 	 */
 	defenderSideConditions?: TeamSideConditions;
+	/**
+	 * `@smogon/calc`'s own `Field.gameType` — defaults to 'Doubles' when
+	 * omitted, matching this app's own behavior before this option existed.
+	 * See `FieldConditions.battleFormat`.
+	 */
+	battleFormat?: BattleFormat;
 	/** Field-wide weather (#24) — shared by both sides, unlike ally support. */
 	weather?: Weather;
 	/** Field-wide terrain (#24). See `weather`. */
@@ -149,13 +155,17 @@ function toPercent(damage: number, maxHP: number): string {
 }
 
 /**
- * Computes damage for one (attacker, move, target) triple. Always uses a
- * `gameType: 'Doubles'` field — this app never models Singles — even
- * though some doubles-specific mechanics (Follow Me redirection, spread
- * damage, ...) still aren't wired up. `options` layers the calculation-time
- * overrides callers opt into per move (assume-crit, a manual multi-hit
- * count, ally support, weather, terrain) on top of the move/attacker's own
- * data — see `DamageOptions`.
+ * Computes damage for one (attacker, move, target) triple. Defaults to a
+ * `gameType: 'Doubles'` field unless `options.battleFormat` overrides it —
+ * this app's roster is always a fixed 2vs2 regardless of that setting (see
+ * `CONTEXT.md`), it only changes which of `@smogon/calc`'s own gameType-gated
+ * mechanics apply, chiefly the Doubles spread-damage modifier on
+ * `allAdjacent`/`allAdjacentFoes` moves; some other doubles-specific
+ * mechanics (Follow Me redirection, ...) still aren't wired up regardless of
+ * format. `options` layers the calculation-time overrides callers opt into
+ * per move (assume-crit, a manual multi-hit count, ally support, battle
+ * format, weather, terrain) on top of the move/attacker's own data — see
+ * `DamageOptions`.
  */
 export function computeDamage(
 	attacker: TeamSlot,
@@ -176,7 +186,7 @@ export function computeDamage(
 	// (isFriendGuard vs. isProtected/isReflect/.../spikes) — if that ever
 	// stops being true, the second spread below would silently win.
 	const field = new Field({
-		gameType: 'Doubles',
+		gameType: options.battleFormat ?? 'Doubles',
 		weather: options.weather,
 		terrain: options.terrain,
 		isGravity: options.gravity,

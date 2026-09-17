@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { TeamSlot } from '$lib/stores/team.svelte';
+	import type { SpeciesItem } from '$lib/calc/generation';
+	import { abilitiesOf } from '$lib/calc/abilities';
+	import { megaStoneFor } from '$lib/calc/items';
 	import { exportPokePaste, importPokePaste } from '$lib/calc/pokepaste';
 	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
 	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
@@ -29,6 +32,41 @@
 	} = $props();
 
 	const disabled = $derived(!slot.species);
+
+	/**
+	 * Runs whenever the user picks a species through this card's own UI —
+	 * `PokemonCombobox`, `FormeCombobox` (switching forme, including into
+	 * or out of a Mega Evolution) or `GenderToggle` — auto-filling the
+	 * newly picked species' first ability (`abilitiesOf`, PokeAPI-backed
+	 * and async) and, for a Mega Evolution, its own Mega Stone as the held
+	 * item (`megaStoneFor`).
+	 *
+	 * Deliberately NOT hooked into `TeamSlot.species`'s own setter
+	 * (`team.svelte.ts`): `importPokePaste` sets `slot.species` directly
+	 * too, and always overwrites `ability`/`item` right after with
+	 * whatever the pasted set itself says — including clearing either
+	 * back to `null` for a paste that specifies neither. Auto-filling in
+	 * the setter would at best be redundant work an import immediately
+	 * discards, and at worst could race that explicit assignment (this
+	 * function's own `abilitiesOf` await resolving *after* import has
+	 * already, correctly, cleared `slot.ability`) and silently overwrite
+	 * an intentionally ability-less import.
+	 */
+	async function selectSpecies(species: SpeciesItem | null) {
+		slot.species = species;
+		if (!species) return;
+
+		const megaStone = megaStoneFor(species);
+		if (megaStone) slot.item = megaStone;
+
+		const options = await abilitiesOf(species);
+		// The user may have picked a different species again while this
+		// was in flight — same guard `AbilityCombobox` itself uses — so
+		// only the still-current species' own first ability lands.
+		if (slot.species === species) {
+			slot.ability = options[0]?.name ?? null;
+		}
+	}
 
 	let copied = $state(false);
 	/** Set only when the Clipboard API itself fails (denied permission, unsupported) — shows the text inline so it can still be copied by hand. */
@@ -91,14 +129,14 @@
 		</div>
 
 		<div class="absolute top-[20px] right-0 flex h-4 items-center">
-			<GenderToggle bind:selected={slot.species} {disabled} />
+			<GenderToggle bind:selected={() => slot.species, selectSpecies} {disabled} />
 		</div>
 
 		<div class="flex items-center gap-2">
 			<div class="min-w-0 flex-1">
-				<PokemonCombobox bind:selected={slot.species} />
+				<PokemonCombobox bind:selected={() => slot.species, selectSpecies} />
 			</div>
-			<FormeCombobox bind:selected={slot.species} {disabled} />
+			<FormeCombobox bind:selected={() => slot.species, selectSpecies} {disabled} />
 		</div>
 
 		<ItemCombobox bind:selected={slot.item} {disabled} />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultTeamSideConditions } from '$lib/stores/team.svelte';
-import { sideConditionFlags } from '$lib/calc/sideConditions';
+import { defaultTeamSideConditions, TeamSlot } from '$lib/stores/team.svelte';
+import { providesIntimidate, sideConditionFlags } from '$lib/calc/sideConditions';
 
 describe('sideConditionFlags', () => {
 	it('maps every default (off/zero) condition to its @smogon/calc Side flag', () => {
@@ -36,5 +36,47 @@ describe('sideConditionFlags', () => {
 			isSR: true,
 			spikes: 3
 		});
+	});
+});
+
+describe('providesIntimidate', () => {
+	function slotWithAbility(ability: string | null): TeamSlot {
+		const slot = new TeamSlot();
+		slot.ability = ability;
+		return slot;
+	}
+
+	it("auto-derives true when either of the team's two slots has the Intimidate ability", () => {
+		const conditions = defaultTeamSideConditions();
+
+		expect(
+			providesIntimidate([slotWithAbility('Intimidate'), slotWithAbility(null)], conditions)
+		).toBe(true);
+		expect(
+			providesIntimidate([slotWithAbility(null), slotWithAbility('Intimidate')], conditions)
+		).toBe(true);
+	});
+
+	it('auto-derives false when neither slot has the Intimidate ability', () => {
+		const conditions = defaultTeamSideConditions();
+
+		expect(
+			providesIntimidate([slotWithAbility('Rough Skin'), slotWithAbility(null)], conditions)
+		).toBe(false);
+	});
+
+	it("lets a manual override win over the slots' own abilities either way", () => {
+		expect(
+			providesIntimidate([slotWithAbility(null), slotWithAbility(null)], {
+				...defaultTeamSideConditions(),
+				intimidate: true
+			})
+		).toBe(true);
+		expect(
+			providesIntimidate([slotWithAbility('Intimidate'), slotWithAbility(null)], {
+				...defaultTeamSideConditions(),
+				intimidate: false
+			})
+		).toBe(false);
 	});
 });

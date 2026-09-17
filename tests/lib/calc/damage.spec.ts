@@ -180,7 +180,7 @@ describe('toSmogonPokemon', () => {
 });
 
 describe('computeDamage', () => {
-	it('always calculates on a Doubles field', () => {
+	it('calculates on a Doubles field by default', () => {
 		const attacker = buildSlot({
 			speciesName: 'Slaking',
 			ability: 'Truant',
@@ -199,6 +199,56 @@ describe('computeDamage', () => {
 		const { result } = computeDamage(attacker, attacker.moves[0]!, defender);
 
 		expect(result.field.gameType).toBe('Doubles');
+	});
+
+	it('honors `battleFormat` to calculate on a Singles field instead', () => {
+		const attacker = buildSlot({
+			speciesName: 'Slaking',
+			ability: 'Truant',
+			natureName: 'Hardy',
+			statPoints: { atk: 20 },
+			moveNames: ['Zen Headbutt']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const { result } = computeDamage(attacker, attacker.moves[0]!, defender, {
+			battleFormat: 'Singles'
+		});
+
+		expect(result.field.gameType).toBe('Singles');
+	});
+
+	it("drops Doubles' spread-damage reduction on an allAdjacent move (Earthquake) when `battleFormat` is 'Singles'", () => {
+		const attacker = buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Jolly',
+			statPoints: { atk: 20 },
+			moveNames: ['Earthquake']
+		});
+		const defender = buildSlot({
+			speciesName: 'Snorlax',
+			ability: 'Immunity',
+			natureName: 'Hardy',
+			statPoints: { def: 15 },
+			moveNames: ['Tackle']
+		});
+
+		const doubles = computeDamage(attacker, attacker.moves[0]!, defender);
+		const singles = computeDamage(attacker, attacker.moves[0]!, defender, {
+			battleFormat: 'Singles'
+		});
+
+		const [doublesMin, doublesMax] = doubles.result.range();
+		const [singlesMin, singlesMax] = singles.result.range();
+		expect(singlesMin).toBeGreaterThan(doublesMin);
+		expect(singlesMax).toBeGreaterThan(doublesMax);
 	});
 
 	it('matches a hand-computed %HP range and KO chance for a known, modifier-free build', () => {

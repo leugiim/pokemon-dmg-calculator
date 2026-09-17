@@ -81,16 +81,18 @@ export function defaultTeamAllySupport(): TeamAllySupport {
 }
 
 /**
- * A team's shared side conditions: screens, Stealth Rock and Spikes
- * — real `@smogon/calc` `Side` state, but a distinct concept from ally
- * support (`TeamAllySupport`): these never derive from any Pokémon's own
- * `ability`, so there's no Auto mode, just plain manual toggles/counts,
- * off/zero by default. Team-wide for the same reason as ally support —
- * they describe a condition on the whole side, not one specific Pokémon.
- * `protect` is a deliberate simplification: real Protect is a single
- * Pokémon's action for one turn, but this toggle is for testing the
- * hypothetical "what if this side's target had protected" against every
- * calculation involving either of its two Pokémon at once.
+ * A team's shared side conditions: screens, Stealth Rock, Spikes and
+ * Intimidate — real `@smogon/calc` `Side` state for the first four, but a
+ * distinct concept from ally support (`TeamAllySupport`): screens/Stealth
+ * Rock/Spikes never derive from any Pokémon's own `ability`, so there's no
+ * Auto mode for those, just plain manual toggles/counts, off/zero by
+ * default. Team-wide for the same reason as ally support — they describe a
+ * condition on the whole side, not one specific Pokémon. `protect` is a
+ * deliberate simplification: real Protect is a single Pokémon's action for
+ * one turn, but this toggle is for testing the hypothetical "what if this
+ * side's target had protected" against every calculation involving either
+ * of its two Pokémon at once. `intimidate` is the one exception with a real
+ * Auto mode — see its own doc comment below.
  */
 export interface TeamSideConditions {
 	protect: boolean;
@@ -109,8 +111,16 @@ export interface TeamSideConditions {
 	 * an Intimidate". Unlike Protect/the screens, it doesn't map to any
 	 * `@smogon/calc` `Side` flag at all — it's a per-Pokemon `boosts.atk`
 	 * adjustment applied in `matrix.ts`, not `sideConditionFlags`.
+	 *
+	 * Unlike the other side conditions, this one *does* have an Auto mode
+	 * (`null`), same Auto/On/Off convention as `FieldConditions`' field
+	 * abilities and `TeamAllySupport`'s static flags: auto-derived from
+	 * whether either of this team's own two Pokemon has the Intimidate
+	 * ability equipped (`sideConditions.ts`'s `providesIntimidate`), with a
+	 * manual override available for a "what if" the roster's own abilities
+	 * don't cover.
 	 */
-	intimidate: boolean;
+	intimidate: boolean | null;
 }
 
 export function defaultTeamSideConditions(): TeamSideConditions {
@@ -121,7 +131,7 @@ export function defaultTeamSideConditions(): TeamSideConditions {
 		auroraVeil: false,
 		stealthRock: false,
 		spikes: 0,
-		intimidate: false
+		intimidate: null
 	};
 }
 

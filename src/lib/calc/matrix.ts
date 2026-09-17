@@ -11,6 +11,7 @@ import { hasDamageComponent, isAllAdjacentTarget, isAllyOnlyTarget, type MoveIte
 import { computeDamage, type DamageDisplay, type DamageOptions } from './damage';
 import { fieldAbilityFlags } from './fieldAbilities';
 import { clampBoostStage } from './format';
+import { providesIntimidate } from './sideConditions';
 
 /** One damage number in a `DamageMatrixRow`, against one opposing Pokemon. */
 export interface DamageMatrixCell {
@@ -85,7 +86,7 @@ interface TeamContext {
  * index. `opponentSlots` is the (unfiltered) 2-slot opposing side, used via
  * `otherOf` to find each target's own ally. `own`/`opponent` are the
  * attacker's own and the opposing team's shared state respectively;
- * `fieldConditions` is the shared weather/terrain (#24), identical for
+ * `fieldConditions` is the shared battle format/weather/terrain (#24), identical for
  * every cell regardless of which side is attacking; `fieldAbilities` is
  * the already-derived Ruin-ability/Fairy Aura `Field` flags (also shared,
  * see `fieldAbilities.ts`).
@@ -111,6 +112,7 @@ function buildRows(
 			hits: hits ?? undefined,
 			attackerAlly: ally,
 			attackerAllySupport: own.support,
+			battleFormat: fieldConditions.battleFormat,
 			weather: fieldConditions.weather ?? undefined,
 			terrain: fieldConditions.terrain ?? undefined,
 			gravity: fieldConditions.gravity,
@@ -120,7 +122,10 @@ function buildRows(
 			// which of the opponent's Pokemon or the attacker's own ally
 			// ends up as `target` below, since it's the attacker's own
 			// persistent stat stage, not something computed per matchup.
-			attackerBoosts: opponent.sideConditions.intimidate
+			// `opponentSlots` (that team's own roster) is what
+			// `providesIntimidate` auto-derives from when its manual
+			// override is unset.
+			attackerBoosts: providesIntimidate(opponentSlots, opponent.sideConditions)
 				? { atk: clampBoostStage(attacker.boosts.atk - 1) }
 				: undefined
 		};
