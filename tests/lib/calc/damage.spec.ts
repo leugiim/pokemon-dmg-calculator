@@ -832,3 +832,58 @@ describe('computeDamage', () => {
 		});
 	});
 });
+
+describe('fainted allies', () => {
+	function kingambit(moveName: string) {
+		return buildSlot({
+			speciesName: 'Kingambit',
+			ability: 'Supreme Overlord',
+			natureName: 'Adamant',
+			statPoints: { atk: 32 },
+			moveNames: [moveName]
+		});
+	}
+	const target = () =>
+		buildSlot({
+			speciesName: 'Garchomp',
+			ability: 'Rough Skin',
+			natureName: 'Adamant',
+			statPoints: {},
+			moveNames: []
+		});
+
+	it('feeds alliesFainted into the smogon Pokemon', () => {
+		const slot = kingambit('Kowtow Cleave');
+		slot.alliesFainted = 3;
+		expect(toSmogonPokemon(slot).alliesFainted).toBe(3);
+	});
+
+	it('Supreme Overlord raises damage with more fainted allies', () => {
+		const slot = kingambit('Sucker Punch');
+		const m = slot.moves[0]!;
+		const damage = (n: number) => {
+			slot.alliesFainted = n;
+			return computeDamage(slot, m, target()).result.range()[1];
+		};
+		expect(damage(3)).toBeGreaterThan(damage(0));
+		expect(damage(5)).toBeGreaterThan(damage(3));
+	});
+
+	it('Last Respects scales its base power by 50 per fainted ally', () => {
+		const slot = kingambit('Last Respects');
+		slot.ability = 'Defiant';
+		const m = slot.moves[0]!;
+		const damage = (n: number) => {
+			slot.alliesFainted = n;
+			return computeDamage(slot, m, target()).result.range()[1];
+		};
+		expect(damage(2)).toBeGreaterThan(damage(0) * 2.5);
+	});
+
+	it('resets on a different species but not within the family', () => {
+		const slot = kingambit('Sucker Punch');
+		slot.alliesFainted = 4;
+		slot.species = species('Garchomp');
+		expect(slot.alliesFainted).toBe(0);
+	});
+});

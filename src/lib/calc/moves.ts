@@ -144,3 +144,17 @@ const championsBasePowerByName = new Map([...championsGen.moves].map((m) => [m.n
 export function effectiveBasePower(move: MoveItem): number {
 	return championsBasePowerByName.get(move.name) ?? move.basePower;
 }
+
+/** True for a move whose power scales with the user's fainted allies. */
+export function scalesWithAlliesFainted(move: MoveItem): boolean {
+	return move.name === 'Last Respects';
+}
+
+/**
+ * `effectiveBasePower`, plus Last Respects' +50 per fainted ally —
+ * `@smogon/calc` only has its flat 50 for it.
+ */
+export function basePowerWithAlliesFainted(move: MoveItem, alliesFainted: number): number {
+	const base = effectiveBasePower(move);
+	return scalesWithAlliesFainted(move) ? base + 50 * alliesFainted : base;
+}

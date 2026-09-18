@@ -1,11 +1,17 @@
 <script lang="ts">
 	import type { Result } from '@smogon/calc';
-	import type { TeamSlot } from '$lib/stores/team.svelte';
+	import { MAX_ALLIES_FAINTED, type TeamSlot } from '$lib/stores/team.svelte';
 	import type { DamageDisplay } from '$lib/calc/damage';
-	import { hasDamageComponent, multiHitRange, type MultiHitRange } from '$lib/calc/moves';
+	import {
+		hasDamageComponent,
+		multiHitRange,
+		scalesWithAlliesFainted,
+		type MultiHitRange
+	} from '$lib/calc/moves';
 	import type { DamageMatrixAttacker } from '$lib/calc/matrix';
 	import DamageResult from './DamageResult.svelte';
 	import SpeciesSprite from '../display/SpeciesSprite.svelte';
+	import NumberStepper from '../ui/NumberStepper.svelte';
 	import ToggleButton from '../ui/ToggleButton.svelte';
 
 	let {
@@ -105,12 +111,34 @@
 		{@const showsHitsColumn = rows.some(
 			(row) => hasDamageComponent(row.move) && multiHitRange(row.move)
 		)}
-		<h3 class="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
-			{#if attacker.species}
-				<SpeciesSprite species={attacker.species} size={20} />
+		{@const usesAlliesFainted =
+			attacker.ability === 'Supreme Overlord' ||
+			attacker.moves.some((move) => move !== null && scalesWithAlliesFainted(move))}
+		<div class="flex items-center justify-between gap-2">
+			<h3 class="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
+				{#if attacker.species}
+					<SpeciesSprite species={attacker.species} size={20} />
+				{/if}
+				{labelFor(attacker)}
+			</h3>
+			<!-- Only Supreme Overlord and Last Respects read this. -->
+			{#if usesAlliesFainted}
+				<span class="flex items-center gap-1.5 text-[11px] text-gray-400">
+					Fainted allies
+					<NumberStepper
+						value={attacker.alliesFainted}
+						min={0}
+						max={MAX_ALLIES_FAINTED}
+						ariaLabel="fainted allies for {labelFor(attacker)}"
+						onChange={(n) =>
+							(attacker.alliesFainted = Math.min(
+								MAX_ALLIES_FAINTED,
+								Math.max(0, Math.round(n) || 0)
+							))}
+					/>
+				</span>
 			{/if}
-			{labelFor(attacker)}
-		</h3>
+		</div>
 		{#if opponents.length === 0}
 			<p class="text-[11px] text-gray-500">Pick a species for at least one opposing Pokémon.</p>
 		{:else if rows.length === 0}
