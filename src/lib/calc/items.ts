@@ -1,4 +1,4 @@
-import { gen } from './generation';
+import { allSpecies, gen } from './generation';
 import type { SpeciesItem } from './generation';
 
 /** All held items available in this generation, sorted alphabetically. */
@@ -20,4 +20,17 @@ export type HeldItem = (typeof allItems)[number];
 export function megaStoneFor(species: SpeciesItem): HeldItem | null {
 	if (!species.baseSpecies) return null;
 	return allItems.find((item) => item.megaStone?.[species.baseSpecies!] === species.name) ?? null;
+}
+
+/**
+ * The Mega form `item` turns `species` into — the reverse of `megaStoneFor`.
+ * `null` when `item` isn't a Mega Stone, or isn't the stone for `species`'
+ * own family (Venusaurite on Charizard). Works from a Mega form too, so
+ * swapping Charizardite X for Charizardite Y on Mega Charizard X yields
+ * Mega Charizard Y.
+ */
+export function megaFormFor(item: HeldItem, species: SpeciesItem): SpeciesItem | null {
+	const megaName = item.megaStone?.[species.baseSpecies ?? species.name];
+	if (!megaName || megaName === species.name) return null;
+	return allSpecies.find((s) => s.name === megaName) ?? null;
 }
