@@ -31,6 +31,9 @@ export interface MoveCalcOptions {
 /** Per-move-slot Damage Matrix overrides — parallel to `MoveSlots`. */
 export type MoveOptionsSlots = [MoveCalcOptions, MoveCalcOptions, MoveCalcOptions, MoveCalcOptions];
 
+/** The most fainted allies the selector allows. */
+export const MAX_ALLIES_FAINTED = 5;
+
 function emptyMoves(): MoveSlots {
 	return [null, null, null, null];
 }
@@ -161,6 +164,11 @@ export class TeamSlot {
 	statPoints = $state<StatPoints>(emptyStatPoints());
 	/** In-battle stat stages (-6..+6, 0 by default) — a "what if" on top of `statPoints`, not part of the build itself; see `StatPointBars`. */
 	boosts = $state<StatBoosts>(emptyStatBoosts());
+	/**
+	 * Fainted allies (0-5) — the stack count behind Supreme Overlord and
+	 * Last Respects. A "what if" on top of the build, like `boosts`.
+	 */
+	alliesFainted = $state(0);
 	moves = $state<MoveSlots>(emptyMoves());
 	moveOptions = $state<MoveOptionsSlots>(defaultMoveOptionsSlots());
 
@@ -170,7 +178,7 @@ export class TeamSlot {
 
 	/**
 	 * Switching to a genuinely different Pokémon voids the item, nature,
-	 * stat points, moves, and per-move Damage Matrix overrides (assume-crit,
+	 * stat points, fainted allies, moves, and per-move Damage Matrix overrides (assume-crit,
 	 * hit-count) chosen for the previous one. Switching formes within the
 	 * same family (e.g. into or out of a Mega Evolution) only changes what
 	 * its base stats (and the sprite/types derived from them) are — the
@@ -191,6 +199,7 @@ export class TeamSlot {
 			this.nature = NEUTRAL_NATURE;
 			this.statPoints = emptyStatPoints();
 			this.boosts = emptyStatBoosts();
+			this.alliesFainted = 0;
 			this.moves = emptyMoves();
 			this.moveOptions = defaultMoveOptionsSlots();
 		}
