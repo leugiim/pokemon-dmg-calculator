@@ -32,6 +32,19 @@ function spToEv(sp: number): number {
 	return sp === 0 ? 0 : 8 * sp - 4;
 }
 
+/** Inverse of `spToEv` — only ever fed EVs this file itself produced. */
+function evToSp(ev: number): number {
+	return ev === 0 ? 0 : (ev + 4) / 8;
+}
+
+/**
+ * Rewrites the leading EV count of one of `@smogon/calc`'s stat
+ * descriptions ("252+ Atk", "0 Def") into this app's Stat Points ("32+ Atk").
+ */
+function evsTextToSps(text: string | undefined): string | undefined {
+	return text?.replace(/^\d+/, (ev) => String(evToSp(Number(ev))));
+}
+
 function toEvs(statPoints: StatPoints): Record<StatID, number> {
 	return Object.fromEntries(STAT_ORDER.map((stat) => [stat, spToEv(statPoints[stat])])) as Record<
 		StatID,
@@ -198,6 +211,16 @@ export function computeDamage(
 	const result = calculate(GEN_NUM, attackerMon, targetMon, smogonMove, field);
 	const [min, max] = result.range();
 	const maxHP = targetMon.maxHP();
+
+	// `result.fullDesc()` is what the Damage Matrix shows: `@smogon/calc`
+	// writes stats as EVs and only names a base power for moves it computes
+	// itself, so convert to Stat Points and always name the real BP.
+	const desc = result.rawDesc;
+	desc.attackEVs = evsTextToSps(desc.attackEVs);
+	desc.HPEVs = evsTextToSps(desc.HPEVs);
+	desc.defenseEVs = evsTextToSps(desc.defenseEVs);
+	const basePower = basePowerWithAlliesFainted(move, attacker.alliesFainted);
+	if (!desc.moveBP && basePower > 0) desc.moveBP = basePower;
 
 	return {
 		percentRange: `${toPercent(min, maxHP)} - ${toPercent(max, maxHP)}`,
