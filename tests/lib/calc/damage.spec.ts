@@ -887,3 +887,26 @@ describe('fainted allies', () => {
 		expect(slot.alliesFainted).toBe(0);
 	});
 });
+
+describe('damage description', () => {
+	it('names Stat Points instead of EVs, and the move base power', () => {
+		const attacker = buildSlot({
+			speciesName: 'Basculegion',
+			ability: 'Adaptability',
+			natureName: 'Adamant',
+			statPoints: { atk: 32 },
+			moveNames: ['Last Respects']
+		});
+		attacker.alliesFainted = 1;
+		const target = buildSlot({
+			speciesName: 'Kingambit',
+			ability: 'Defiant',
+			natureName: 'Adamant',
+			statPoints: { hp: 32 },
+			moveNames: []
+		});
+		const text = computeDamage(attacker, attacker.moves[0]!, target).result.fullDesc('%', false);
+		expect(text).toContain('32+ Atk Adaptability Basculegion Last Respects (100 BP)');
+		expect(text).toContain('vs. 32 HP / 0 Def Kingambit');
+	});
+});
