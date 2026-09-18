@@ -3,7 +3,9 @@
 	import type { SpeciesItem } from '$lib/calc/generation';
 	import { abilitiesOf } from '$lib/calc/abilities';
 	import { applyCommonSet, hasCommonSets, type CommonSet } from '$lib/calc/commonSets';
-	import { megaStoneFor } from '$lib/calc/items';
+	import { applyEntryEffect } from '$lib/calc/entryEffects';
+	import { megaFormFor, megaStoneFor, type HeldItem } from '$lib/calc/items';
+	import { field } from '$lib/stores/field.svelte';
 	import { exportPokePaste, importPokePaste } from '$lib/calc/pokepaste';
 	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
 	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
@@ -67,7 +69,25 @@
 		// only the still-current species' own first ability lands.
 		if (slot.species === species) {
 			slot.ability = options[0]?.name ?? null;
+			applyEntryEffect(slot.ability, field);
 		}
+	}
+
+	/**
+	 * Runs whenever the user picks an item through `ItemCombobox` — the
+	 * reverse of `selectSpecies`' Mega Stone auto-fill: a stone that fits
+	 * this slot's species switches the slot into the Mega form (through
+	 * `selectSpecies`, so the ability and its entry effect follow).
+	 */
+	function selectItem(item: HeldItem | null) {
+		slot.item = item;
+		const mega = item && slot.species && megaFormFor(item, slot.species);
+		if (mega) selectSpecies(mega);
+	}
+
+	function selectAbility(ability: string | null) {
+		slot.ability = ability;
+		applyEntryEffect(ability, field);
 	}
 
 	let copied = $state(false);
@@ -161,8 +181,12 @@
 			<FormeCombobox bind:selected={() => slot.species, selectSpecies} {disabled} />
 		</div>
 
-		<ItemCombobox bind:selected={slot.item} {disabled} />
-		<AbilityCombobox species={slot.species} bind:selected={slot.ability} {disabled} />
+		<ItemCombobox bind:selected={() => slot.item, selectItem} {disabled} />
+		<AbilityCombobox
+			species={slot.species}
+			bind:selected={() => slot.ability, selectAbility}
+			{disabled}
+		/>
 		<NatureCombobox bind:selected={slot.nature} {disabled} />
 	</div>
 
