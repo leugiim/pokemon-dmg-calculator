@@ -4,6 +4,7 @@
 	import Button from '$lib/components/shared/ui/Button.svelte';
 	import { generateId, parseTeamPaste } from '$lib/modules/shared';
 	import { displayName, planner } from '$lib/modules/team-planner';
+	import CreateFromCalculator from './CreateFromCalculator.svelte';
 	import PokemonCard from './PokemonCard.svelte';
 
 	const MAX_TEAM_SIZE = 6;
@@ -108,6 +109,9 @@
 
 	<div class="flex justify-end gap-2">
 		<Button href={backHref}>Cancel</Button>
+		{#if !teamId}
+			<CreateFromCalculator sets={preview} {name} />
+		{/if}
 		<Button variant="primary" onclick={save}>{teamId ? 'Save changes' : 'Create team'}</Button>
 	</div>
 </div>

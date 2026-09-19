@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTeamHandoff, type Team } from '$lib/modules/team-planner';
+import { buildNewTeamHandoff, buildTeamHandoff, type Team } from '$lib/modules/team-planner';
 
 const pokemon = (species: string, nickname?: string) => ({
 	species,
@@ -27,11 +27,33 @@ describe('buildTeamHandoff', () => {
 	it('is a team handoff: no rival, no leads', () => {
 		expect(handoff).toMatchObject({
 			purpose: 'team',
+			teamId: 't1',
 			teamName: 'My team',
 			createdAt: 123,
 			ownLead: [],
 			rival: [],
 			rivalLead: []
 		});
+	});
+});
+
+describe('buildNewTeamHandoff', () => {
+	it('is empty by default, to build a team from scratch', () => {
+		expect(buildNewTeamHandoff([], '', 5)).toEqual({
+			createdAt: 5,
+			purpose: 'new-team',
+			teamName: undefined,
+			own: [],
+			ownLead: [],
+			rival: [],
+			rivalLead: []
+		});
+	});
+
+	it('can start from sets and a name', () => {
+		const handoff = buildNewTeamHandoff(team.pokemon, '  Draft ');
+		expect(handoff.teamName).toBe('Draft');
+		expect(handoff.own.map((m) => m.name)).toEqual(['Charizard', 'Sparky', 'Garchomp']);
+		expect(handoff.teamId).toBeUndefined();
 	});
 });

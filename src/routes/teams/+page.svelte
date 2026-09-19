@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/shared/ui/Button.svelte';
+	import CreateFromCalculator from '$lib/components/team-planner/CreateFromCalculator.svelte';
 	import PlannerIntro from '$lib/components/team-planner/PlannerIntro.svelte';
 	import PokeName from '$lib/components/team-planner/PokeName.svelte';
 	import { displayName, planner, winrate, winrateClass } from '$lib/modules/team-planner';
@@ -18,7 +19,10 @@
 
 <header class="flex items-center justify-between gap-4">
 	<h1 class="text-2xl font-bold text-gray-100">Team Planner</h1>
-	<Button variant="primary" href={resolve('/teams/new')}>+ New team</Button>
+	<div class="flex flex-wrap items-center gap-2">
+		<CreateFromCalculator />
+		<Button variant="primary" href={resolve('/teams/new')}>+ New team</Button>
+	</div>
 </header>
 
 <PlannerIntro />

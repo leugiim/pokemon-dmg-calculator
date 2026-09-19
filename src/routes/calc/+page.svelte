@@ -18,14 +18,8 @@
 	import TeamToolbar from '$lib/components/damage-calculator/team/TeamToolbar.svelte';
 	import Button from '$lib/components/shared/ui/Button.svelte';
 	import { loadHandoff, rivalSetsToSave, rosterA, rosterB } from '$lib/modules/damage-calculator';
-	import {
-		exportTeamPaste,
-		generateId,
-		readHandoff,
-		writeHandoffResult,
-		type PokemonSetData
-	} from '$lib/modules/shared';
-	import { displayName, planner } from '$lib/modules/team-planner';
+	import { readHandoff, writeHandoffResult, type PokemonSetData } from '$lib/modules/shared';
+	import { planner } from '$lib/modules/team-planner';
 	import { providesIntimidate } from '$lib/modules/damage-calculator/calc/sideConditions';
 
 	// A match opened from the team planner (`/calc?handoff=<id>`): both whole
@@ -33,7 +27,9 @@
 	// page is prerendered and has no query string then.
 	let handoffId = $state<string | null>(null);
 	let handoffTitle = $state('');
-	let fromMatch = $state(true);
+	let purpose = $state<'match' | 'team' | 'new-team'>('match');
+	/** The planner team the calculator was opened from, whose changes can be saved back. */
+	let editingTeamId = $state<string | null>(null);
 	let handoffMissing = $state(false);
 	let saved = $state<'idle' | 'saved' | 'failed'>('idle');
 
@@ -48,20 +44,21 @@
 		loadHandoff(handoff);
 		handoffId = id;
 		handoffTitle = handoff.teamName ?? 'your team';
-		fromMatch = handoff.purpose !== 'team';
+		purpose = handoff.purpose ?? 'match';
+		editingTeamId = purpose === 'new-team' ? null : (handoff.teamId ?? null);
 	});
 
 	/** "Save as new team": the calculator hands the team over, the planner keeps it. */
 	function saveAsNewTeam(sets: PokemonSetData[], name: string) {
-		const team = {
-			id: generateId(),
-			name: name.trim() || sets.map(displayName).join(' / '),
-			paste: exportTeamPaste(sets),
-			pokemon: sets,
-			createdAt: Date.now()
-		};
-		planner.saveTeam(team);
+		const team = planner.createTeam(sets, name);
 		return { id: team.id, name: team.name };
+	}
+
+	/** "Save changes": the same, over the team the calculator was opened from. */
+	function saveChanges(sets: PokemonSetData[]) {
+		if (!editingTeamId) return null;
+		const team = planner.updateTeamSets(editingTeamId, sets);
+		return team ? { id: team.id, name: team.name } : null;
 	}
 
 	function saveRivalSets() {
@@ -83,10 +80,13 @@
 		<div
 			class="flex flex-wrap items-center gap-3 rounded-xl border border-sky-800 bg-sky-950/40 px-4 py-3 text-sm text-gray-200"
 		>
-			{#if fromMatch}
+			{#if purpose === 'match'}
 				<span>
-					Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as Team
-					B. Pick who's on the field with the 1 / 2 buttons.
+					Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as
+					Team B. Pick who's on the field with the 1 / 2 buttons.
+					{#if editingTeamId}
+						<strong>Save changes</strong> overwrites that team in the planner with Team A.
+					{/if}
 				</span>
 				<div class="ml-auto flex items-center gap-3">
 					{#if saved === 'saved'}
@@ -100,10 +100,20 @@
 						Save rival sets to the match
 					</Button>
 				</div>
+			{:else if purpose === 'team'}
+				<span>
+					Loaded your team: <strong>{handoffTitle}</strong> as Team A. Pick who's on the field with
+					the 1 / 2 buttons; Team B is yours to fill in.
+					{#if editingTeamId}
+						Change the team here, then <strong>Save changes</strong> updates it in the planner, or
+						<strong>Save as new team</strong> keeps the original as it is.
+					{/if}
+				</span>
 			{:else}
 				<span>
-					Loaded your team: <strong>{handoffTitle}</strong> as Team A. Pick who's on the field with the
-					1 / 2 buttons; Team B is yours to fill in.
+					Building a new team in Team A. Pick a Pokémon in a slot and press <strong>Save</strong> to
+					add it to the team, or <strong>Import</strong> a PokePaste, and finish with
+					<strong>Save as new team</strong>.
 				</span>
 			{/if}
 		</div>
@@ -120,6 +130,8 @@
 				title="Team A"
 				roster={rosterA}
 				onsaveteam={saveAsNewTeam}
+				onsavechanges={editingTeamId ? saveChanges : undefined}
+				changesTeamName={handoffTitle}
 				teamHref={(id) => resolve('/teams/[id]', { id })}
 			/>
 			<RosterStrip roster={rosterA} />

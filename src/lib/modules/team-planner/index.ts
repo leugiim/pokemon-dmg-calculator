@@ -16,7 +16,7 @@ export {
 	saveMatch,
 	saveTeam
 } from './storage';
-export { buildTeamHandoff } from './calcHandoff';
+export { buildNewTeamHandoff, buildTeamHandoff } from './calcHandoff';
 export { formatDate, RESULT_LABELS, winrateClass } from './format';
 export { historyToJson, jsonToHistory, jsonToMatch, matchToJson } from './matchIO';
 export {

@@ -1,9 +1,12 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 
 	/**
 	 * A dialog over a dimmed backdrop. Closes on Escape and on a click on
-	 * the backdrop itself (not one that bubbled up from the panel).
+	 * the backdrop itself (not one that bubbled up from the panel). Focus goes
+	 * into it when it opens (unless something inside already took it, like an
+	 * autofocused field) so Escape works right away, and back to what had it
+	 * when it closes.
 	 */
 	let {
 		title,
@@ -19,6 +22,15 @@
 	} = $props();
 
 	const titleId = $props.id();
+
+	let dialog: HTMLDivElement | undefined;
+
+	onMount(() => {
+		const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		// Children (an autofocused field) run before this, so only take focus if nobody did.
+		if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+		return () => opener?.focus();
+	});
 
 	function onBackdropKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
@@ -36,6 +48,7 @@
 	role="presentation"
 >
 	<div
+		bind:this={dialog}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby={titleId}

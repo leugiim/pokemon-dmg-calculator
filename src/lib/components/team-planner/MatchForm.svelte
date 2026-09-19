@@ -108,6 +108,7 @@
 
 		const stored = writeHandoff(handoffId, {
 			createdAt: Date.now(),
+			teamId: team.id,
 			teamName: team.name,
 			own,
 			ownLead: lead,
