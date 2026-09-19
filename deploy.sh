@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Redeploy de producción. Se ejecuta como leugiim en /srv/pokemon-dmg-calculator.
+# Redeploy de producción. Se ejecuta como leugiim en /srv/pokemon-tools.
 set -euo pipefail
 
 git pull

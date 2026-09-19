@@ -4,10 +4,9 @@
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 
-	// Still the calculator's original domain: the new one for pokemon-tools
-	// isn't decided yet (see the deploy task), and this is the only place
-	// it's spelled out besides static/sitemap.xml and static/robots.txt.
-	const SITE_URL = 'https://doubles-vgc-calc.leugiim.es';
+	// Only place the domain is spelled out besides static/sitemap.xml and
+	// static/robots.txt.
+	const SITE_URL = 'https://vgc-tools.leugiim.es';
 
 	const ROUTES: Record<string, { title: string; description: string }> = {
 		'/': {
