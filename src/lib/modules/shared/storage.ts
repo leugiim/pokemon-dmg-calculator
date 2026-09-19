@@ -43,3 +43,19 @@ export function removeKey(key: string): void {
 		// nothing to clean up
 	}
 }
+
+/** Every stored key that starts with `prefix`. */
+export function listKeys(prefix: string): string[] {
+	const storage = getStorage();
+	if (!storage) return [];
+	try {
+		const keys: string[] = [];
+		for (let i = 0; i < storage.length; i++) {
+			const key = storage.key(i);
+			if (key?.startsWith(prefix)) keys.push(key);
+		}
+		return keys;
+	} catch {
+		return [];
+	}
+}

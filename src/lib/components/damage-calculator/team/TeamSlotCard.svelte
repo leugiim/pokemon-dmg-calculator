@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { TeamRoster } from '$lib/modules/damage-calculator/stores/roster.svelte';
 	import type { TeamSlot } from '$lib/modules/damage-calculator/stores/team.svelte';
 	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
 	import { abilitiesOf } from '$lib/modules/damage-calculator/calc/abilities';
@@ -33,10 +34,16 @@
 	// declared explicitly all the way up, or it warns ownership_invalid_binding.
 	let {
 		slot = $bindable(),
+		roster,
+		slotIndex,
 		tailwind = false,
 		intimidated = false
 	}: {
 		slot: TeamSlot;
+		/** The team this slot belongs to, for "Save". */
+		roster: TeamRoster;
+		/** Which of the side's two slots this is. */
+		slotIndex: 0 | 1;
 		/** Whether this slot's own team currently has Tailwind up — see `StatPointBars`' own `tailwind`. */
 		tailwind?: boolean;
 		/** Whether the *opposing* team currently has Intimidate up — see `StatPointBars`' own `intimidated`. */
@@ -65,7 +72,7 @@
 	 * an intentionally ability-less import.
 	 */
 	async function selectSpecies(species: SpeciesItem | null) {
-		slot.species = species;
+		changeSpecies(() => (slot.species = species));
 		if (!species) return;
 
 		const megaStone = megaStoneFor(species);
@@ -80,6 +87,24 @@
 			applyEntryEffect(slot.ability, field);
 		}
 	}
+
+	/** The species' "family": the same for its formes (Charizard and Charizard-Mega-Y). */
+	const familyOf = (species: SpeciesItem | null) => species?.baseSpecies ?? species?.name ?? null;
+
+	/**
+	 * Runs `change`, and if it turned this slot's Pokémon into a genuinely
+	 * different one (not just another forme), the slot is no longer its team
+	 * member's: the member keeps the build it had, and this becomes a new
+	 * Pokémon that can be saved in the team on its own.
+	 */
+	function changeSpecies(change: () => void) {
+		roster.sync();
+		const before = familyOf(slot.species);
+		change();
+		if (familyOf(slot.species) !== before) roster.detach(slotIndex);
+	}
+
+	const addBlockedReason = $derived(roster.addBlockedReason(slotIndex));
 
 	/**
 	 * Runs whenever the user picks an item through `ItemCombobox` — the
@@ -121,7 +146,7 @@
 
 	function submitImport() {
 		try {
-			importPokePaste(slot, importText);
+			changeSpecies(() => importPokePaste(slot, importText));
 			importOpen = false;
 			importText = '';
 			importError = null;
@@ -229,25 +254,37 @@
 			<button
 				type="button"
 				{disabled}
+				title="Copy this Pokémon as a PokePaste"
 				onclick={copyPokePaste}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
 			>
-				{copied ? 'Copied!' : 'Copy PokePaste'}
+				{copied ? 'Copied!' : 'Export'}
 			</button>
 			<button
 				type="button"
+				title="Import a PokePaste into this slot"
 				onclick={() => (importOpen = !importOpen)}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700"
 			>
-				Import PokePaste
+				Import
 			</button>
 			<button
 				type="button"
 				disabled={!hasCommonSets(slot.species)}
+				title="Load a curated common set for this Pokémon"
 				onclick={() => (commonSetsOpen = true)}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
 			>
 				Common Sets
+			</button>
+			<button
+				type="button"
+				disabled={addBlockedReason !== null}
+				title={addBlockedReason ?? 'Save this Pokémon in the team above'}
+				onclick={() => roster.add(slotIndex)}
+				class="self-start rounded border border-sky-700 bg-sky-900/40 px-2 py-1 text-[10px] text-sky-200 hover:bg-sky-800/60 disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-300 disabled:opacity-30"
+			>
+				Save
 			</button>
 		</div>
 		{#if pasteFallback}

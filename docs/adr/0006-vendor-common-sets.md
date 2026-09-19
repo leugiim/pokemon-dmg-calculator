@@ -1,6 +1,6 @@
 # Common Sets are vendored from nerd-of-now/NCP-VGC-Damage-Calculator's own setdex
 
-The "Common Sets" feature (`TeamSlotCard`'s button next to "Import PokePaste") lets a reader load
+The "Common Sets" feature (`TeamSlotCard`'s button next to "Import") lets a reader load
 a curated, named build onto a slot's already-selected species instead of building one by hand.
 That data comes from [nerd-of-now/NCP-VGC-Damage-Calculator](https://github.com/nerd-of-now/NCP-VGC-Damage-Calculator)
 (this app's own stated inspiration, `README.md`'s "Motivation") — specifically

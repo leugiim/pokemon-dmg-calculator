@@ -3,12 +3,21 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/shared/ui/Button.svelte';
-	import { generateId } from '$lib/modules/shared';
+	import {
+		generateId,
+		handoffIdOfResultKey,
+		parseTeamPaste,
+		readHandoffResult,
+		writeHandoff,
+		type HandoffMember,
+		type PokemonSetData
+	} from '$lib/modules/shared';
 	import {
 		displayName,
 		getPokemonNames,
 		LEAD_SIZE,
 		padRivalSlots,
+		RIVAL_TEAM_SIZE,
 		planner,
 		RESULT_LABELS,
 		SELECTION_SIZE,
@@ -41,6 +50,13 @@
 	let rivalSelection = $state(original?.rivalSelection ?? []);
 	let rivalLead = $state(original?.rivalLead ?? []);
 	let notes = $state(original?.notes ?? '');
+	// Full rival sets, from a pasted team or edited in the calculator.
+	let rivalSets = $state<PokemonSetData[]>(original?.rivalSets ?? []);
+	let rivalPaste = $state(original?.rivalPaste ?? '');
+	let rivalPasteText = $state(original?.rivalPaste ?? '');
+	let rivalNotice = $state('');
+	// Ties this form to the calculator tab it opens.
+	const handoffId = generateId();
 	let error = $state('');
 	let pokemonNames = $state<string[]>([]);
 
@@ -74,6 +90,63 @@
 		}));
 	}
 
+	const norm = (name: string) => name.trim().toLowerCase();
+	const isSetOf = (set: PokemonSetData, name: string) =>
+		norm(set.nickname || set.species) === norm(name) || norm(set.species) === norm(name);
+
+	/** The two teams as they are in the form now, for the calculator. */
+	function openCalculator() {
+		const roster = original?.teamRoster ?? [];
+		const inRoster = team.pokemon.filter((p) =>
+			roster.some((n) => norm(n) === norm(displayName(p)))
+		);
+		const own: HandoffMember[] = (inRoster.length > 0 ? inRoster : team.pokemon).map((p) => ({
+			name: displayName(p),
+			set: p
+		}));
+		const rival: HandoffMember[] = rivalFilled.map((name) => ({
+			name,
+			set: rivalSets.find((s) => isSetOf(s, name))
+		}));
+
+		const stored = writeHandoff(handoffId, {
+			createdAt: Date.now(),
+			teamName: team.name,
+			own,
+			ownLead: lead,
+			rival,
+			rivalLead
+		});
+		if (!stored) {
+			error = "Couldn't open the calculator (browser storage unavailable).";
+			return;
+		}
+		window.open(`${resolve('/calc')}?handoff=${encodeURIComponent(handoffId)}`, '_blank');
+	}
+
+	// The calculator tab saves the rival sets it ends up with under this form's key.
+	function onStorage(e: StorageEvent) {
+		if (handoffIdOfResultKey(e.key) !== handoffId) return;
+		const result = readHandoffResult(handoffId);
+		if (!result) return;
+		rivalSets = result.rivalSets;
+		rivalNotice = `${result.rivalSets.length} rival sets updated from the calculator.`;
+	}
+
+	/** Fills the opposing team (names and sets) from a pasted team. */
+	function applyRivalPaste() {
+		const sets = parseTeamPaste(rivalPasteText).slice(0, RIVAL_TEAM_SIZE);
+		if (sets.length === 0) {
+			rivalNotice = "Couldn't find any Pokémon in that paste.";
+			return;
+		}
+		rivalSets = sets;
+		rivalPaste = rivalPasteText.trim();
+		rivalTeam = padRivalSlots(sets.map(displayName));
+		onRivalChange();
+		rivalNotice = `${sets.length} rival sets loaded from the paste.`;
+	}
+
 	function save() {
 		error = validateMatch({ result, selection, lead }) ?? '';
 		if (error || !result) return;
@@ -91,6 +164,11 @@
 			rivalTeam: rivalFilled,
 			rivalSelection,
 			rivalLead,
+			// Only the sets of Pokémon that are still on the opposing team.
+			rivalSets: rivalSets.some((set) => rivalFilled.some((name) => isSetOf(set, name)))
+				? rivalSets.filter((set) => rivalFilled.some((name) => isSetOf(set, name)))
+				: undefined,
+			rivalPaste: rivalPaste || undefined,
 			notes: notes.trim()
 		});
 		goto(backHref);
@@ -99,6 +177,8 @@
 	const label = 'text-sm font-medium text-gray-200';
 	const hint = 'text-xs font-normal text-gray-500';
 </script>
+
+<svelte:window onstorage={onStorage} />
 
 <div class="flex flex-col gap-6">
 	<section class="flex flex-col gap-2">
@@ -172,6 +252,33 @@
 				ontoggle={(name) => (rivalLead = toggleLead(rivalLead, name))}
 				icons={false}
 			/>
+		{/if}
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<span class={label}>Calculator</span>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button onclick={openCalculator}>Open in calculator</Button>
+			<span class={hint}>
+				Opens in a new tab with your whole team and the opposing team ({rivalFilled.length}
+				named, {rivalSets.length} with a set). Nothing you typed here is lost.
+			</span>
+		</div>
+		<details class="text-sm">
+			<summary class="cursor-pointer text-gray-300">Paste the opposing team (optional)</summary>
+			<div class="mt-2 flex flex-col gap-2">
+				<textarea
+					bind:value={rivalPasteText}
+					rows="8"
+					spellcheck="false"
+					placeholder="Paste their Pokepaste to get full sets for the calculator…"
+					class="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 font-mono text-xs text-gray-100 placeholder:text-gray-500"
+				></textarea>
+				<div><Button size="sm" onclick={applyRivalPaste}>Use this paste</Button></div>
+			</div>
+		</details>
+		{#if rivalNotice}
+			<p class="text-xs text-emerald-400">{rivalNotice}</p>
 		{/if}
 	</section>
 
