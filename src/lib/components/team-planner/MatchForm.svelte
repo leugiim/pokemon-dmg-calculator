@@ -27,6 +27,7 @@
 		type Team
 	} from '$lib/modules/team-planner';
 	import PokeToggleGroup from './PokeToggleGroup.svelte';
+	import { findSpecies } from '$lib/modules/shared/species/generation';
 	import SpeciesField from './SpeciesField.svelte';
 
 	/** Records a match for `team`, or edits the match `matchId`. */
@@ -53,6 +54,8 @@
 	let rivalPaste = $state(original?.rivalPaste ?? '');
 	let rivalPasteText = $state(original?.rivalPaste ?? '');
 	let rivalNotice = $state('');
+	let rivalNoticeIsError = $state(false);
+	let pasteOpen = $state(!!original?.rivalPaste);
 	// Ties this form to the calculator tab it opens.
 	const handoffId = generateId();
 	let error = $state('');
@@ -89,6 +92,7 @@
 
 	/** The two teams as they are in the form now, for the calculator. */
 	function openCalculator() {
+		if (!applyPendingRivalPaste()) return;
 		const roster = original?.teamRoster ?? [];
 		const inRoster = team.pokemon.filter((p) =>
 			roster.some((n) => norm(n) === norm(displayName(p)))
@@ -124,23 +128,50 @@
 		if (!result) return;
 		rivalSets = result.rivalSets;
 		rivalNotice = `${result.rivalSets.length} rival sets updated from the calculator.`;
+		rivalNoticeIsError = false;
 	}
 
-	/** Fills the opposing team (names and sets) from a pasted team. */
-	function applyRivalPaste() {
-		const sets = parseTeamPaste(rivalPasteText).slice(0, RIVAL_TEAM_SIZE);
+	/**
+	 * Fills the opposing team (names and sets) from a pasted team. Only the
+	 * Pokémon whose species is known are used (up to 6); the others are named
+	 * in the message. Returns whether any Pokémon was found.
+	 */
+	function applyRivalPaste(): boolean {
+		const parsed = parseTeamPaste(rivalPasteText);
+		const sets = parsed.filter((set) => findSpecies(set.species)).slice(0, RIVAL_TEAM_SIZE);
+		const unknown = parsed.filter((set) => !findSpecies(set.species)).map((set) => set.species);
 		if (sets.length === 0) {
 			rivalNotice = "Couldn't find any Pokémon in that paste.";
-			return;
+			rivalNoticeIsError = true;
+			return false;
 		}
 		rivalSets = sets;
 		rivalPaste = rivalPasteText.trim();
 		rivalTeam = padRivalSlots(sets.map((set) => set.species));
 		onRivalChange();
-		rivalNotice = `${sets.length} rival sets loaded from the paste.`;
+		rivalNotice =
+			`${sets.length} Pokémon from the paste are now in the opposing team.` +
+			(unknown.length > 0 ? ` Not recognized, left out: ${unknown.join(', ')}.` : '');
+		rivalNoticeIsError = false;
+		return true;
+	}
+
+	/**
+	 * Text pasted but not yet applied (the reader went straight to Save or to
+	 * the calculator) is applied first, so its Pokémon end up in the opposing
+	 * team. Returns false, with the reason in `error`, if it can't be read.
+	 */
+	function applyPendingRivalPaste(): boolean {
+		const text = rivalPasteText.trim();
+		if (!text || text === rivalPaste) return true;
+		if (applyRivalPaste()) return true;
+		pasteOpen = true;
+		error = "Couldn't find any Pokémon in the pasted opposing team.";
+		return false;
 	}
 
 	function save() {
+		if (!applyPendingRivalPaste()) return;
 		error = validateMatch({ result, selection, lead }) ?? '';
 		if (error || !result) return;
 
@@ -218,6 +249,25 @@
 			{/each}
 		</div>
 
+		<details class="text-sm" bind:open={pasteOpen}>
+			<summary class="cursor-pointer text-gray-300">Paste the opposing team (optional)</summary>
+			<div class="mt-2 flex flex-col gap-2">
+				<textarea
+					bind:value={rivalPasteText}
+					rows="8"
+					spellcheck="false"
+					placeholder="Paste their Pokepaste to get full sets for the calculator…"
+					class="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 font-mono text-xs text-gray-100 placeholder:text-gray-500"
+				></textarea>
+				<div><Button size="sm" onclick={applyRivalPaste}>Use this paste</Button></div>
+			</div>
+		</details>
+		{#if rivalNotice}
+			<p class="text-xs {rivalNoticeIsError ? 'text-red-400' : 'text-emerald-400'}">
+				{rivalNotice}
+			</p>
+		{/if}
+
 		{#if rivalFilled.length >= 2}
 			<span class="{label} mt-2">
 				Opposing selection <span class={hint}>({rivalSelection.length}/{SELECTION_SIZE})</span>
@@ -246,22 +296,6 @@
 				named, {rivalSets.length} with a set). Nothing you typed here is lost.
 			</span>
 		</div>
-		<details class="text-sm">
-			<summary class="cursor-pointer text-gray-300">Paste the opposing team (optional)</summary>
-			<div class="mt-2 flex flex-col gap-2">
-				<textarea
-					bind:value={rivalPasteText}
-					rows="8"
-					spellcheck="false"
-					placeholder="Paste their Pokepaste to get full sets for the calculator…"
-					class="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 font-mono text-xs text-gray-100 placeholder:text-gray-500"
-				></textarea>
-				<div><Button size="sm" onclick={applyRivalPaste}>Use this paste</Button></div>
-			</div>
-		</details>
-		{#if rivalNotice}
-			<p class="text-xs text-emerald-400">{rivalNotice}</p>
-		{/if}
 	</section>
 
 	<section class="flex flex-col gap-1">
