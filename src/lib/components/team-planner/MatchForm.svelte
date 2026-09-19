@@ -205,7 +205,7 @@
 				names={selection}
 				selected={lead}
 				ontoggle={(name) => (lead = toggleLead(lead, name))}
-				icons={false}
+				{speciesByName}
 			/>
 		</section>
 	{/if}
@@ -233,7 +233,6 @@
 				names={rivalSelection}
 				selected={rivalLead}
 				ontoggle={(name) => (rivalLead = toggleLead(rivalLead, name))}
-				icons={false}
 			/>
 		{/if}
 	</section>
