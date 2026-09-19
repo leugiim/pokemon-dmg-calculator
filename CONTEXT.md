@@ -85,6 +85,12 @@ A `TeamSlotCard`'s "Common Sets" button (next to "Import PokePaste") opens `Comm
 `ability` is the one field this doesn't treat like PokePaste import does: most of the vendored sets (123 of 151 at vendoring time) simply don't specify one at all — the source tool apparently leaves it to whatever's already selected rather than treating it as part of the set — so `CommonSet.ability` is `string | undefined`, and `applyCommonSet` leaves the slot's current ability alone when it's `undefined` rather than clearing it to `null` the way a PokePaste import's genuinely-absent ability does. A Mega Evolution's sets live under its base species (holding the Mega Stone as the `item`), never a separate `"X-Mega-Y"` key — applying one never switches the slot's own forme, same as import.
 _Avoid_: clearing `slot.ability` to `null` when a common set's own `ability` is `undefined` (destroys a perfectly good auto-filled ability for the ~80% of sets that just don't mention one — see ADR-0006)
 
+## Shared language
+
+**Set data** (`PokemonSetData`, `modules/shared`):
+A Pokémon's build as plain, serializable data: species, optional nickname/item/ability/nature, Stat Points and up to 4 move names, all as display names. The format both tools agree on and what gets persisted. `TeamSlot.fromData`/`toData` convert it to and from a live slot; names the calculator can't match are skipped and reported by `applySetData`, never fatal. Not part of it: stat stages, fainted allies and per-move crit/hit-count (in-battle "what ifs", not the build), and level/IVs (fixed by the format).
+_Avoid_: storing `TeamSlot` or `@smogon/calc` objects (`Specie`, `Item`, `Move`) directly
+
 ## Team Planner language
 
 _Planned; these terms come from the standalone `pokemon-team-stats` app and will be implemented as the planner is ported (ADR-0007)._
