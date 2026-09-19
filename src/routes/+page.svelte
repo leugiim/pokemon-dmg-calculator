@@ -18,7 +18,6 @@
 				Keep your teams from a Pokepaste, log your matches and see your win rates, leads and
 				toughest opponents.
 			</p>
-			<span class="mt-auto text-xs text-gray-500">Coming soon</span>
 		</a>
 
 		<a

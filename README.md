@@ -3,7 +3,7 @@
 VGC tools for Pokémon Champions (doubles, Reg M-C), in one SvelteKit app:
 
 - **Damage Calculator** (`/calc`): a 2v2 damage calculator. You pick 2 Pokémon per side and get the damage of every attacker's moves against every opposing target, with doubles-specific mechanics (spread moves, ally support, field abilities...).
-- **Team Planner** (`/teams`, in progress): keep your teams from a Pokepaste, log your matches and see win rates, leads and toughest opponents. It is being ported from the standalone [`pokemon-team-stats`](https://github.com/leugiim/pokemon-team-stats) app. The goal is to open the calculator from a match with both teams already loaded.
+- **Team Planner** (`/teams`): keep your teams from a Pokepaste, log your matches and see win rates, leads and toughest opponents. Ported from the standalone [`pokemon-team-stats`](https://github.com/leugiim/pokemon-team-stats) app. Data lives in your browser (`localStorage`), with JSON export/import of a team's match history. Opening the calculator from a match with both teams loaded is next.
 
 This repo used to be `pokemon-dmg-calculator` (the calculator on its own).
 
@@ -68,4 +68,4 @@ pnpm test:unit -- --run
 
 ## Deployment
 
-`pnpm build` produces a static site in `build/` that any static host can serve. Production deployment is described in `deploy.sh`.
+`pnpm build` produces a static site in `build/`. `/` and `/calc` are prerendered; the planner's pages (`/teams/...`) render in the browser only, so the host must serve `200.html` (the SPA fallback) for any path that isn't a file, e.g. Caddy's `try_files {path} {path}.html /200.html`. Production deployment is described in `deploy.sh`.

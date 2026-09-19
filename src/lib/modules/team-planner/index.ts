@@ -16,5 +16,33 @@ export {
 	saveMatch,
 	saveTeam
 } from './storage';
+export { formatDate, RESULT_LABELS, winrateClass } from './format';
+export { historyToJson, jsonToHistory, jsonToMatch, matchToJson } from './matchIO';
+export {
+	LEAD_SIZE,
+	padRivalSlots,
+	RIVAL_TEAM_SIZE,
+	SELECTION_SIZE,
+	syncRivalPicks,
+	toggleLead,
+	toggleSelection,
+	validateMatch,
+	type PickState
+} from './matchForm';
+export { getPokemonNames } from './pokemonNames';
+export { itemIconUrl, megaIconUrl, pokemonIconUrl, pokemonSpriteUrl } from './sprites';
+export {
+	computeTeamStats,
+	filterEnemyLeadStats,
+	filterEnemyStats,
+	filterMatches,
+	megaBase,
+	winrate,
+	type LeadStat,
+	type NamedStat,
+	type PokeStat,
+	type ResultFilter,
+	type TeamStats
+} from './stats';
 export { planner } from './teams.svelte';
 export { displayName, type Match, type MatchResult, type Team } from './types';
