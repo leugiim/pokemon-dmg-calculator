@@ -15,7 +15,11 @@ The set of field-level flags scoped to one battling party for a single calculati
 One of the two positions within a `TeamId`'s roster (index 0 or 1), each holding a `TeamSlot` (species, item, ability, nature, stat points, moves). The two slots of one side are always allies of each other.
 
 **Ally**:
-The Pokémon occupying the other slot of the same side as a given attacker or defender. Every damage calculation involves exactly one ally per side (fixed 2vs2, no bench).
+The Pokémon occupying the other slot of the same side as a given attacker or defender. Every damage calculation involves exactly one ally per side (fixed 2vs2). A side can also hold a whole team behind those two slots (see **Roster** below), but only the two on the field take part in a calculation.
+
+**Roster** _(calculator)_:
+The whole team behind one `TeamId` (up to 6, `TeamRoster` in `stores/roster.svelte.ts`), of which two are on the field, i.e. are the side's two `TeamSlot`s; the rest are the **bench**. Only filled when the calculator is opened from a planner match; opened on its own, a side is just its two slots. Bringing a member onto the field first writes the slot's current build back into its member, so edits survive a trip to the bench; stat stages and the other in-battle "what ifs" don't. A member's build comes from a saved set, else the species' first common set, else just its name.
+_Avoid_: confusing it with the planner's **Roster** (the 6 a Team had in a Match)
 
 **Damage Matrix**:
 The core result of a matchup: for every attacker (the 4 Pokémon across both sides) and every one of its up to 4 moves, the damage against each of the 2 opposing Pokémon, computed in both directions (A→B and B→A). Excludes friendly fire, except that an `allAdjacent` move's simultaneous ally damage is shown inline alongside its matrix row (see Friendly fire). Every move row is shown, including status moves (marked `—`, see below); no targeting is redirected (Follow Me, Rage Powder, Storm Drain, Lightning Rod are not modeled — the reader picks the target).

@@ -10,6 +10,8 @@ The calculator (this repo, formerly `pokemon-dmg-calculator`) and a separate Rea
 - **Persistence**: `localStorage`, shared by both tools, with JSON export/import as a backup. Still no backend.
 - **Rival with optional sets**: a Match keeps the quick "names only" mode; opening the calculator fills missing rival sets from Common Sets. Both tools share a plain serializable set type instead of the calculator's `TeamSlot` class (which holds `$state` and `@smogon/calc` objects).
 
+- **Opening the calculator from a match**: the match form writes a short-lived handoff record (`pt:v1:calc-handoff:<id>`, the contract lives in `modules/shared/calc-handoff.ts`) and opens `/calc?handoff=<id>` in a new tab, so the unsaved form is untouched. The calculator gets the **whole team of each side** (up to 6), not just the 4 selected; the match's leads are put on the field and any member can be swapped in from the bench. Rival members without a saved set use the species' first common set. The calculator writes the rival sets back under `pt:v1:calc-result:<id>` and the match form, listening to `storage` events, picks them up and saves them with the match (`rivalSets`). Neither module imports the other: both only know the shared contract. Records older than a day are pruned.
+
 ## Consequences
 
 - `vendor/smogon-calc` and `vendor/ncp-common-sets` stay as they are (ADR-0005, ADR-0006).
