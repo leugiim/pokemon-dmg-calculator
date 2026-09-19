@@ -222,12 +222,7 @@
 			<span class="{label} mt-2">
 				Opposing selection <span class={hint}>({rivalSelection.length}/{SELECTION_SIZE})</span>
 			</span>
-			<PokeToggleGroup
-				names={rivalFilled}
-				selected={rivalSelection}
-				ontoggle={pickRival}
-				icons={false}
-			/>
+			<PokeToggleGroup names={rivalFilled} selected={rivalSelection} ontoggle={pickRival} />
 		{/if}
 
 		{#if rivalSelection.length >= 2}
