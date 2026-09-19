@@ -1,5 +1,5 @@
 import { Pokemon, Move, Field, calculate, type Result, type StatID } from '@smogon/calc';
-import { GEN_NUM } from './generation';
+import { GEN_NUM } from '$lib/modules/shared/species/generation';
 import { FIXED_IV, LEVEL, STAT_ORDER, type StatPoints } from './format';
 import type { TeamAllySupport, TeamSideConditions, TeamSlot } from '../stores/team.svelte';
 import type { BattleFormat, Terrain, Weather } from '../stores/field.svelte';

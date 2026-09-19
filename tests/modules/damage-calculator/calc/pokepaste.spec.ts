@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { allSpecies } from '$lib/modules/shared/species/generation';
 import { allMoves } from '$lib/modules/damage-calculator/calc/moves';
 import { allItems } from '$lib/modules/damage-calculator/calc/items';
 import { allNatures, type NatureName } from '$lib/modules/damage-calculator/calc/format';

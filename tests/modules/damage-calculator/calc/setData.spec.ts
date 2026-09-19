@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allNatures } from '$lib/modules/damage-calculator/calc/format';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { allSpecies } from '$lib/modules/shared/species/generation';
 import { applySetData, slotToData } from '$lib/modules/damage-calculator/calc/setData';
 import { TeamSlot } from '$lib/modules/damage-calculator/stores/team.svelte';
 import { parseTeamPaste, type PokemonSetData } from '$lib/modules/shared';

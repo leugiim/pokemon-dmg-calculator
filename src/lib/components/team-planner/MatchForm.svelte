@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/shared/ui/Button.svelte';
@@ -14,7 +13,6 @@
 	} from '$lib/modules/shared';
 	import {
 		displayName,
-		getPokemonNames,
 		LEAD_SIZE,
 		padRivalSlots,
 		RIVAL_TEAM_SIZE,
@@ -29,7 +27,8 @@
 		type Team
 	} from '$lib/modules/team-planner';
 	import PokeToggleGroup from './PokeToggleGroup.svelte';
-	import PokemonInput from './PokemonInput.svelte';
+	import { findSpecies } from '$lib/modules/shared/species/generation';
+	import SpeciesField from './SpeciesField.svelte';
 
 	/** Records a match for `team`, or edits the match `matchId`. */
 	let { team, matchId = undefined }: { team: Team; matchId?: string } = $props();
@@ -55,14 +54,11 @@
 	let rivalPaste = $state(original?.rivalPaste ?? '');
 	let rivalPasteText = $state(original?.rivalPaste ?? '');
 	let rivalNotice = $state('');
+	let rivalNoticeIsError = $state(false);
+	let pasteOpen = $state(!!original?.rivalPaste);
 	// Ties this form to the calculator tab it opens.
 	const handoffId = generateId();
 	let error = $state('');
-	let pokemonNames = $state<string[]>([]);
-
-	onMount(() => {
-		getPokemonNames().then((names) => (pokemonNames = names));
-	});
 
 	const ownNames = $derived(team.pokemon.map(displayName));
 	const rivalFilled = $derived(rivalTeam.map((n) => n.trim()).filter(Boolean));
@@ -96,6 +92,7 @@
 
 	/** The two teams as they are in the form now, for the calculator. */
 	function openCalculator() {
+		if (!applyPendingRivalPaste()) return;
 		const roster = original?.teamRoster ?? [];
 		const inRoster = team.pokemon.filter((p) =>
 			roster.some((n) => norm(n) === norm(displayName(p)))
@@ -131,23 +128,50 @@
 		if (!result) return;
 		rivalSets = result.rivalSets;
 		rivalNotice = `${result.rivalSets.length} rival sets updated from the calculator.`;
+		rivalNoticeIsError = false;
 	}
 
-	/** Fills the opposing team (names and sets) from a pasted team. */
-	function applyRivalPaste() {
-		const sets = parseTeamPaste(rivalPasteText).slice(0, RIVAL_TEAM_SIZE);
+	/**
+	 * Fills the opposing team (names and sets) from a pasted team. Only the
+	 * Pokémon whose species is known are used (up to 6); the others are named
+	 * in the message. Returns whether any Pokémon was found.
+	 */
+	function applyRivalPaste(): boolean {
+		const parsed = parseTeamPaste(rivalPasteText);
+		const sets = parsed.filter((set) => findSpecies(set.species)).slice(0, RIVAL_TEAM_SIZE);
+		const unknown = parsed.filter((set) => !findSpecies(set.species)).map((set) => set.species);
 		if (sets.length === 0) {
 			rivalNotice = "Couldn't find any Pokémon in that paste.";
-			return;
+			rivalNoticeIsError = true;
+			return false;
 		}
 		rivalSets = sets;
 		rivalPaste = rivalPasteText.trim();
-		rivalTeam = padRivalSlots(sets.map(displayName));
+		rivalTeam = padRivalSlots(sets.map((set) => set.species));
 		onRivalChange();
-		rivalNotice = `${sets.length} rival sets loaded from the paste.`;
+		rivalNotice =
+			`${sets.length} Pokémon from the paste are now in the opposing team.` +
+			(unknown.length > 0 ? ` Not recognized, left out: ${unknown.join(', ')}.` : '');
+		rivalNoticeIsError = false;
+		return true;
+	}
+
+	/**
+	 * Text pasted but not yet applied (the reader went straight to Save or to
+	 * the calculator) is applied first, so its Pokémon end up in the opposing
+	 * team. Returns false, with the reason in `error`, if it can't be read.
+	 */
+	function applyPendingRivalPaste(): boolean {
+		const text = rivalPasteText.trim();
+		if (!text || text === rivalPaste) return true;
+		if (applyRivalPaste()) return true;
+		pasteOpen = true;
+		error = "Couldn't find any Pokémon in the pasted opposing team.";
+		return false;
 	}
 
 	function save() {
+		if (!applyPendingRivalPaste()) return;
 		error = validateMatch({ result, selection, lead }) ?? '';
 		if (error || !result) return;
 
@@ -212,7 +236,7 @@
 				names={selection}
 				selected={lead}
 				ontoggle={(name) => (lead = toggleLead(lead, name))}
-				icons={false}
+				{speciesByName}
 			/>
 		</section>
 	{/if}
@@ -221,50 +245,11 @@
 		<span class={label}>Opposing team <span class={hint}>(optional, up to 6 Pokémon)</span></span>
 		<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 			{#each [...rivalTeam.keys()] as i (i)}
-				<PokemonInput
-					bind:value={rivalTeam[i]}
-					allNames={pokemonNames}
-					placeholder={`Pokémon ${i + 1}`}
-					onchange={onRivalChange}
-				/>
+				<SpeciesField bind:value={rivalTeam[i]} onchange={onRivalChange} />
 			{/each}
 		</div>
 
-		{#if rivalFilled.length >= 2}
-			<span class="{label} mt-2">
-				Opposing selection <span class={hint}>({rivalSelection.length}/{SELECTION_SIZE})</span>
-			</span>
-			<PokeToggleGroup
-				names={rivalFilled}
-				selected={rivalSelection}
-				ontoggle={pickRival}
-				icons={false}
-			/>
-		{/if}
-
-		{#if rivalSelection.length >= 2}
-			<span class="{label} mt-2">
-				Opposing lead <span class={hint}>({rivalLead.length}/{LEAD_SIZE})</span>
-			</span>
-			<PokeToggleGroup
-				names={rivalSelection}
-				selected={rivalLead}
-				ontoggle={(name) => (rivalLead = toggleLead(rivalLead, name))}
-				icons={false}
-			/>
-		{/if}
-	</section>
-
-	<section class="flex flex-col gap-2">
-		<span class={label}>Calculator</span>
-		<div class="flex flex-wrap items-center gap-3">
-			<Button onclick={openCalculator}>Open in calculator</Button>
-			<span class={hint}>
-				Opens in a new tab with your whole team and the opposing team ({rivalFilled.length}
-				named, {rivalSets.length} with a set). Nothing you typed here is lost.
-			</span>
-		</div>
-		<details class="text-sm">
+		<details class="text-sm" bind:open={pasteOpen}>
 			<summary class="cursor-pointer text-gray-300">Paste the opposing team (optional)</summary>
 			<div class="mt-2 flex flex-col gap-2">
 				<textarea
@@ -278,8 +263,39 @@
 			</div>
 		</details>
 		{#if rivalNotice}
-			<p class="text-xs text-emerald-400">{rivalNotice}</p>
+			<p class="text-xs {rivalNoticeIsError ? 'text-red-400' : 'text-emerald-400'}">
+				{rivalNotice}
+			</p>
 		{/if}
+
+		{#if rivalFilled.length >= 2}
+			<span class="{label} mt-2">
+				Opposing selection <span class={hint}>({rivalSelection.length}/{SELECTION_SIZE})</span>
+			</span>
+			<PokeToggleGroup names={rivalFilled} selected={rivalSelection} ontoggle={pickRival} />
+		{/if}
+
+		{#if rivalSelection.length >= 2}
+			<span class="{label} mt-2">
+				Opposing lead <span class={hint}>({rivalLead.length}/{LEAD_SIZE})</span>
+			</span>
+			<PokeToggleGroup
+				names={rivalSelection}
+				selected={rivalLead}
+				ontoggle={(name) => (rivalLead = toggleLead(rivalLead, name))}
+			/>
+		{/if}
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<span class={label}>Calculator</span>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button onclick={openCalculator}>Open in calculator</Button>
+			<span class={hint}>
+				Opens in a new tab with your whole team and the opposing team ({rivalFilled.length}
+				named, {rivalSets.length} with a set). Nothing you typed here is lost.
+			</span>
+		</div>
 	</section>
 
 	<section class="flex flex-col gap-1">

@@ -12,7 +12,7 @@ import {
 import { allItems, type HeldItem } from './items';
 import { allMoves } from './moves';
 import { findByName } from './pokepaste';
-import type { SpeciesItem } from './generation';
+import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 import type { MoveSlots, TeamSlot } from '../stores/team.svelte';
 
 /**

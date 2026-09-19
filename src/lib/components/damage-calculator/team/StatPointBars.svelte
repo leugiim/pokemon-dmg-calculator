@@ -16,7 +16,7 @@
 		type StatBoosts,
 		type StatPoints
 	} from '$lib/modules/damage-calculator/calc/format';
-	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 	import NumberStepper from '$lib/components/shared/ui/NumberStepper.svelte';
 
 	let {

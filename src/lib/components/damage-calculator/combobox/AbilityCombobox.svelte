@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { abilitiesOf, type AbilityOption } from '$lib/modules/damage-calculator/calc/abilities';
-	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 	import SearchableCombobox from '$lib/components/shared/ui/SearchableCombobox.svelte';
 
 	let {

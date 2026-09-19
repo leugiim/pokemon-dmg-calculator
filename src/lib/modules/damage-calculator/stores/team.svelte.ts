@@ -1,4 +1,4 @@
-import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 import type { HeldItem } from '$lib/modules/damage-calculator/calc/items';
 import type { MoveItem } from '$lib/modules/damage-calculator/calc/moves';
 import {

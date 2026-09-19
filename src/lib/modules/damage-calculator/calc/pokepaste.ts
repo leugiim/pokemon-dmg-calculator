@@ -9,7 +9,7 @@ import {
 	NEUTRAL_NATURE,
 	STAT_ORDER
 } from './format';
-import { allSpecies, type SpeciesItem } from './generation';
+import { allSpecies, type SpeciesItem } from '$lib/modules/shared/species/generation';
 import { allItems } from './items';
 import { allMoves } from './moves';
 

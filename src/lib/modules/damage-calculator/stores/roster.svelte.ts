@@ -1,9 +1,11 @@
 import {
 	emptyStatPointsData,
+	parseTeamPaste,
 	type CalcHandoff,
 	type HandoffMember,
 	type PokemonSetData
 } from '$lib/modules/shared';
+import { findSpecies } from '$lib/modules/shared/species/generation';
 import { commonSetData } from '../calc/commonSetData';
 import { applySetData, slotToData } from '../calc/setData';
 import { teamA, teamB, type TeamSlot } from './team.svelte';
@@ -106,6 +108,11 @@ export class TeamRoster {
 		for (const i of changed) this.#hydrate(i);
 	}
 
+	/** Whether there's any Pokémon to speak of: a member, or one in a slot. */
+	get hasPokemon(): boolean {
+		return this.members.length > 0 || this.#slots.some((slot) => slot.species !== null);
+	}
+
 	/** Whether the roster has no room for another member. */
 	get isFull(): boolean {
 		return this.members.length >= MAX_ROSTER_SIZE;
@@ -181,6 +188,15 @@ export class TeamRoster {
 		}
 	}
 
+	/**
+	 * The team as it is on screen: every member, or, while there's no roster
+	 * yet, whatever is in the two slots.
+	 */
+	currentTeam(): PokemonSetData[] {
+		if (this.members.length > 0) return this.toData();
+		return this.#slots.map(slotToData).filter((data): data is PokemonSetData => data !== null);
+	}
+
 	/** Every member's build, with the active ones as they are now. */
 	toData(): PokemonSetData[] {
 		this.sync();
@@ -232,4 +248,24 @@ export function loadHandoff(handoff: CalcHandoff): void {
  */
 export function rivalSetsToSave(): PokemonSetData[] {
 	return rosterB.toData().filter((set) => !isBareSet(set));
+}
+
+/**
+ * Replaces `roster` with the team in a pasted PokePaste (one block per
+ * Pokémon, up to 6); the first two go on the field. Only species this app
+ * knows are used, the rest are reported. Nothing changes if there's none.
+ */
+export function importTeamPaste(
+	roster: TeamRoster,
+	text: string
+): { imported: number; unknown: string[] } {
+	const parsed = parseTeamPaste(text);
+	const sets = parsed.filter((set) => findSpecies(set.species)).slice(0, MAX_ROSTER_SIZE);
+	const unknown = parsed.filter((set) => !findSpecies(set.species)).map((set) => set.species);
+	if (sets.length === 0) return { imported: 0, unknown };
+
+	roster.load(
+		sets.map((data) => ({ name: data.nickname || data.species, data, source: 'saved' as const }))
+	);
+	return { imported: sets.length, unknown };
 }

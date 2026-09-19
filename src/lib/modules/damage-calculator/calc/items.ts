@@ -1,5 +1,5 @@
-import { allSpecies, gen } from './generation';
-import type { SpeciesItem } from './generation';
+import { allSpecies, gen } from '$lib/modules/shared/species/generation';
+import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 
 /** All held items available in this generation, sorted alphabetically. */
 export const allItems = [...gen.items].sort((a, b) => a.name.localeCompare(b.name));

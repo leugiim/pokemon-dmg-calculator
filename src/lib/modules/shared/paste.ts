@@ -1,4 +1,4 @@
-import { Sets } from '@pkmn/sets';
+import { Sets, type PokemonSet } from '@pkmn/sets';
 import {
 	clampStatPoints,
 	emptyStatPointsData,
@@ -47,4 +47,31 @@ export function parseTeamPaste(text: string): PokemonSetData[] {
 		.filter(Boolean)
 		.map(parsePokePasteSet)
 		.filter((set): set is PokemonSetData => set !== null);
+}
+
+/** Level every Pokémon battles at in Pokémon Champions; written on export. */
+const EXPORT_LEVEL = 50;
+
+/**
+ * Renders a set as a PokePaste/Showdown-export block, the format
+ * `parsePokePasteSet` reads. Stat Points go into the `EVs:` line as they
+ * are (0-32), the convention this app uses for pastes both ways.
+ */
+export function exportPokePasteSet(set: PokemonSetData): string {
+	const paste: Partial<PokemonSet> = {
+		name: set.nickname,
+		species: set.species,
+		item: set.item,
+		ability: set.ability,
+		moves: set.moves,
+		nature: set.nature,
+		evs: set.statPoints,
+		level: EXPORT_LEVEL
+	};
+	return Sets.exportSet(paste).trim();
+}
+
+/** A whole team as one paste: a block per Pokémon, separated by a blank line. */
+export function exportTeamPaste(sets: PokemonSetData[]): string {
+	return sets.map(exportPokePasteSet).join('\n\n');
 }

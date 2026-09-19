@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
-import { spriteUrl } from '$lib/modules/damage-calculator/calc/sprites';
+import { allSpecies } from '$lib/modules/shared/species/generation';
+import { spriteUrl } from '$lib/modules/shared/species/sprites';
 
 function species(name: string) {
 	const s = allSpecies.find((s) => s.name === name);

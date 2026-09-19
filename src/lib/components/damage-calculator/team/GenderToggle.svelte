@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { genderPairOf, type SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import { genderPairOf, type SpeciesItem } from '$lib/modules/shared/species/generation';
 
 	let {
 		selected = $bindable(null),

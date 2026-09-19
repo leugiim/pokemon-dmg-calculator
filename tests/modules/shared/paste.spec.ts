@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parsePokePasteSet, parseTeamPaste } from '$lib/modules/shared';
+import {
+	exportPokePasteSet,
+	exportTeamPaste,
+	parsePokePasteSet,
+	parseTeamPaste
+} from '$lib/modules/shared';
 
 const PASTE = `Charizard @ Charizardite Y
 Ability: Blaze
@@ -86,5 +91,37 @@ describe('parseTeamPaste', () => {
 		expect(parseTeamPaste('')).toEqual([]);
 		expect(parseTeamPaste('\n\n  \n')).toEqual([]);
 		expect(parsePokePasteSet('')).toBeNull();
+	});
+});
+
+describe('exportTeamPaste', () => {
+	const sets = parseTeamPaste(PASTE);
+
+	it('round-trips through the parser', () => {
+		expect(parseTeamPaste(exportTeamPaste(sets))).toEqual(sets);
+	});
+
+	it('writes a block per Pokémon separated by a blank line', () => {
+		const text = exportTeamPaste(sets);
+		expect(text.split(/\n\s*\n/)).toHaveLength(3);
+		expect(text).toContain('Sparky (Rotom-Wash) @ Sitrus Berry');
+		expect(text).toContain('EVs: 32 HP / 4 Def / 32 SpD');
+		expect(text).toContain('Timid Nature');
+	});
+
+	it('leaves out what a set does not have', () => {
+		const text = exportPokePasteSet({
+			species: 'Pikachu',
+			statPoints: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+			moves: ['Thunderbolt']
+		});
+		expect(text).not.toContain('@');
+		expect(text).not.toContain('EVs');
+		expect(text).not.toContain('Nature');
+		expect(text).toContain('- Thunderbolt');
+	});
+
+	it('is empty for an empty team', () => {
+		expect(exportTeamPaste([])).toBe('');
 	});
 });

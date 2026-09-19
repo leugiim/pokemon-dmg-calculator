@@ -1,7 +1,7 @@
 import type { PokemonSetData } from '$lib/modules/shared';
 import { TeamSlot } from '../stores/team.svelte';
 import { applyCommonSet, commonSetsFor } from './commonSets';
-import { allSpecies, type SpeciesItem } from './generation';
+import { allSpecies, type SpeciesItem } from '$lib/modules/shared/species/generation';
 import { findByName } from './pokepaste';
 import { slotToData } from './setData';
 

@@ -1,4 +1,4 @@
-import { toID, type SpeciesItem } from './generation';
+import { toID, type SpeciesItem } from '$lib/modules/shared/species/generation';
 
 export interface AbilityOption {
 	name: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { spriteUrl, altSpriteUrl } from '$lib/modules/damage-calculator/calc/sprites';
-	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import { spriteUrl, altSpriteUrl } from '$lib/modules/shared/species/sprites';
+	import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 
 	let { species, size = 24 }: { species: SpeciesItem; size?: number } = $props();
 

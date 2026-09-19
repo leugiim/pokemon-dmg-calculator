@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
+	import Footer from '$lib/components/shared/Footer.svelte';
 
 	// Only place the domain is spelled out besides static/sitemap.xml and
 	// static/robots.txt.
@@ -83,4 +84,7 @@
 	<main class="flex flex-1 flex-col">
 		{@render children()}
 	</main>
+	<div class="px-4 pb-4 sm:px-8 lg:px-16">
+		<Footer />
+	</div>
 </div>
