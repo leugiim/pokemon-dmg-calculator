@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/shared/ui/Button.svelte';
+	import PlannerIntro from '$lib/components/team-planner/PlannerIntro.svelte';
 	import PokeName from '$lib/components/team-planner/PokeName.svelte';
 	import { displayName, planner, winrate, winrateClass } from '$lib/modules/team-planner';
 
@@ -19,6 +20,8 @@
 	<h1 class="text-2xl font-bold text-gray-100">Team Planner</h1>
 	<Button variant="primary" href={resolve('/teams/new')}>+ New team</Button>
 </header>
+
+<PlannerIntro />
 
 {#if !planner.loaded}
 	<p class="text-sm text-gray-500">Loading…</p>
