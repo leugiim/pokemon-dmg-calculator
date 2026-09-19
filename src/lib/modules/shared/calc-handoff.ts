@@ -25,7 +25,10 @@ export interface CalcHandoff {
 	 * empty Team A (or one started from a paste) to build a new team in.
 	 */
 	purpose?: 'match' | 'team' | 'new-team';
-	/** For `team`: the planner team it came from, so the calculator can save changes to it. */
+	/**
+	 * The planner team Team A came from (`team` and `match`), so the calculator
+	 * can offer to save changes back to it.
+	 */
 	teamId?: string;
 	/** Shown in the calculator, e.g. the planner team's name. */
 	teamName?: string;

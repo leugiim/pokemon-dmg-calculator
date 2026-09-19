@@ -45,7 +45,7 @@
 		handoffId = id;
 		handoffTitle = handoff.teamName ?? 'your team';
 		purpose = handoff.purpose ?? 'match';
-		editingTeamId = purpose === 'team' ? (handoff.teamId ?? null) : null;
+		editingTeamId = purpose === 'new-team' ? null : (handoff.teamId ?? null);
 	});
 
 	/** "Save as new team": the calculator hands the team over, the planner keeps it. */
@@ -82,8 +82,11 @@
 		>
 			{#if purpose === 'match'}
 				<span>
-					Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as Team
-					B. Pick who's on the field with the 1 / 2 buttons.
+					Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as
+					Team B. Pick who's on the field with the 1 / 2 buttons.
+					{#if editingTeamId}
+						<strong>Save changes</strong> overwrites that team in the planner with Team A.
+					{/if}
 				</span>
 				<div class="ml-auto flex items-center gap-3">
 					{#if saved === 'saved'}
@@ -128,6 +131,7 @@
 				roster={rosterA}
 				onsaveteam={saveAsNewTeam}
 				onsavechanges={editingTeamId ? saveChanges : undefined}
+				changesTeamName={handoffTitle}
 				teamHref={(id) => resolve('/teams/[id]', { id })}
 			/>
 			<RosterStrip roster={rosterA} />

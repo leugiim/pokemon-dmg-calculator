@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { TeamRoster } from '$lib/modules/damage-calculator/stores/roster.svelte';
 	import { importTeamPaste } from '$lib/modules/damage-calculator/stores/roster.svelte';
+	import Button from '$lib/components/shared/ui/Button.svelte';
+	import Modal from '$lib/components/shared/ui/Modal.svelte';
 	import { exportTeamPaste, type PokemonSetData } from '$lib/modules/shared';
 
 	/**
@@ -15,6 +17,7 @@
 		roster,
 		onsaveteam = undefined,
 		onsavechanges = undefined,
+		changesTeamName = 'this team',
 		teamHref = undefined
 	}: {
 		title: string;
@@ -26,6 +29,8 @@
 		 * `null` if that team is gone. Leave out to hide "Save changes".
 		 */
 		onsavechanges?: (sets: PokemonSetData[]) => { id: string; name: string } | null;
+		/** The name of the team "Save changes" overwrites, for the confirmation. */
+		changesTeamName?: string;
 		/** Where the saved team can be opened. */
 		teamHref?: (id: string) => string;
 	} = $props();
@@ -42,6 +47,8 @@
 	let saveName = $state('');
 	let saved = $state<{ id: string; name: string; changes: boolean } | null>(null);
 	let notice = $state<string | null>(null);
+	/** How many Pokémon "Save changes" would write, while its confirmation is open. */
+	let confirmCount = $state<number | null>(null);
 
 	const empty = $derived(!roster.hasPokemon);
 
@@ -89,7 +96,15 @@
 		notice = null;
 	}
 
+	/** Asks first: saving replaces the planner team's Pokémon. */
+	function askToSaveChanges() {
+		const count = roster.currentTeam().length;
+		if (!onsavechanges || count === 0) return;
+		confirmCount = count;
+	}
+
 	function saveChanges() {
+		confirmCount = null;
 		const sets = roster.currentTeam();
 		if (!onsavechanges || sets.length === 0) return;
 		const team = onsavechanges(sets);
@@ -133,7 +148,7 @@
 					type="button"
 					disabled={empty}
 					title="Save these Pokémon over the team you opened"
-					onclick={saveChanges}
+					onclick={askToSaveChanges}
 					class="rounded border border-indigo-500 bg-indigo-600 px-2 py-1 text-[10px] text-white hover:bg-indigo-500 disabled:pointer-events-none disabled:opacity-30"
 				>
 					Save changes
@@ -220,3 +235,21 @@
 		<p class="text-[11px] text-gray-400">{notice}</p>
 	{/if}
 </div>
+
+{#if confirmCount !== null}
+	<Modal title="Overwrite the team?" onclose={() => (confirmCount = null)}>
+		<p class="text-sm text-gray-300">
+			This will <strong class="text-gray-100">overwrite</strong> the team
+			<strong class="text-gray-100">“{changesTeamName}”</strong> in the team planner: its current
+			Pokémon will be replaced by the {confirmCount} Pokémon that are in {title} now. Its name and its
+			match history stay.
+		</p>
+		<p class="text-sm text-gray-400">
+			To keep the original as it is, cancel and use <em>Save as new team</em> instead.
+		</p>
+		{#snippet actions()}
+			<Button onclick={() => (confirmCount = null)}>Cancel</Button>
+			<Button variant="danger" onclick={saveChanges}>Overwrite team</Button>
+		{/snippet}
+	</Modal>
+{/if}
