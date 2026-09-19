@@ -1,3 +1,4 @@
+import { exportTeamPaste, generateId, type PokemonSetData } from '$lib/modules/shared';
 import {
 	deleteMatch,
 	deleteTeam,
@@ -6,7 +7,7 @@ import {
 	saveMatch,
 	saveTeam
 } from './storage';
-import type { Match, Team } from './types';
+import { displayName, type Match, type Team } from './types';
 
 /**
  * Reactive view over the planner's localStorage data. Nothing is read at
@@ -33,6 +34,34 @@ class PlannerStore {
 	saveTeam(team: Team): void {
 		saveTeam(team);
 		this.teams = getTeams();
+	}
+
+	/**
+	 * A new team from these sets (its paste is written from them). Without a
+	 * name, it's named after its Pokémon.
+	 */
+	createTeam(sets: PokemonSetData[], name = ''): Team {
+		const team: Team = {
+			id: generateId(),
+			name: name.trim() || sets.map(displayName).join(' / '),
+			paste: exportTeamPaste(sets),
+			pokemon: sets,
+			createdAt: Date.now()
+		};
+		this.saveTeam(team);
+		return team;
+	}
+
+	/**
+	 * Replaces the Pokémon of an existing team, keeping its name, id and
+	 * creation date, and rewrites its paste. `null` if the team is gone.
+	 */
+	updateTeamSets(id: string, sets: PokemonSetData[]): Team | null {
+		const existing = getTeams().find((t) => t.id === id);
+		if (!existing) return null;
+		const team: Team = { ...existing, paste: exportTeamPaste(sets), pokemon: sets };
+		this.saveTeam(team);
+		return team;
 	}
 
 	deleteTeam(id: string): void {

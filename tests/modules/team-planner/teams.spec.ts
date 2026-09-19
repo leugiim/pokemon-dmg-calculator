@@ -56,3 +56,57 @@ describe('planner store', () => {
 		expect(planner.matches.t1).toBeUndefined();
 	});
 });
+
+describe('planner store: createTeam and updateTeamSets', () => {
+	const sets = [
+		{
+			species: 'Garchomp',
+			item: 'Choice Scarf',
+			statPoints: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
+			moves: ['Earthquake']
+		},
+		{
+			species: 'Rotom-Wash',
+			nickname: 'Sparky',
+			statPoints: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+			moves: ['Hydro Pump']
+		}
+	];
+
+	it('createTeam stores a new team with a paste written from its sets', () => {
+		const created = planner.createTeam(sets, '  My team ');
+		expect(created.name).toBe('My team');
+		expect(created.pokemon).toEqual(sets);
+		expect(created.paste).toContain('Garchomp @ Choice Scarf');
+		expect(created.paste).toContain('Sparky (Rotom-Wash)');
+		expect(planner.teams.map((t) => t.id)).toEqual([created.id]);
+	});
+
+	it('createTeam without a name uses the Pokémon names', () => {
+		expect(planner.createTeam(sets).name).toBe('Garchomp / Sparky');
+	});
+
+	it('creates a different team each time', () => {
+		expect(planner.createTeam(sets).id).not.toBe(planner.createTeam(sets).id);
+		expect(planner.teams).toHaveLength(2);
+	});
+
+	it('updateTeamSets replaces the Pokémon and paste but keeps the name, id and date', () => {
+		const created = planner.createTeam(sets, 'Original');
+		const updated = planner.updateTeamSets(created.id, [sets[0]])!;
+		expect(updated).toMatchObject({
+			id: created.id,
+			name: 'Original',
+			createdAt: created.createdAt
+		});
+		expect(updated.pokemon).toEqual([sets[0]]);
+		expect(updated.paste).not.toContain('Sparky');
+		expect(planner.teams.find((t) => t.id === created.id)?.pokemon).toHaveLength(1);
+		expect(planner.teams).toHaveLength(1);
+	});
+
+	it('updateTeamSets is null for a team that does not exist', () => {
+		expect(planner.updateTeamSets('nope', sets)).toBeNull();
+		expect(planner.teams).toEqual([]);
+	});
+});

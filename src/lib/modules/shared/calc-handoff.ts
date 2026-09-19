@@ -20,10 +20,13 @@ export interface CalcHandoff {
 	createdAt: number;
 	/**
 	 * `match`: opened from a match form, both teams loaded and the rival's
-	 * sets can be saved back to it (the default). `team`: just a team's own
-	 * six, nothing to save back.
+	 * sets can be saved back to it (the default). `team`: an existing team's
+	 * own six (see `teamId`), nothing to save back to a match. `new-team`: an
+	 * empty Team A (or one started from a paste) to build a new team in.
 	 */
-	purpose?: 'match' | 'team';
+	purpose?: 'match' | 'team' | 'new-team';
+	/** For `team`: the planner team it came from, so the calculator can save changes to it. */
+	teamId?: string;
 	/** Shown in the calculator, e.g. the planner team's name. */
 	teamName?: string;
 	/** Up to 6, the whole team. */
