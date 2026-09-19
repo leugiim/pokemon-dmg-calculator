@@ -100,6 +100,8 @@
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard
 					bind:slot={teamA[i]}
+					roster={rosterA}
+					slotIndex={i as 0 | 1}
 					tailwind={allySupport.teamA.tailwind}
 					intimidated={providesIntimidate(teamB, sideConditions.teamB)}
 				/>
@@ -112,6 +114,8 @@
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard
 					bind:slot={teamB[i]}
+					roster={rosterB}
+					slotIndex={i as 0 | 1}
 					tailwind={allySupport.teamB.tailwind}
 					intimidated={providesIntimidate(teamA, sideConditions.teamA)}
 				/>

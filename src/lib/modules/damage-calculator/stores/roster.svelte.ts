@@ -24,6 +24,9 @@ export interface RosterMember {
 	source: MemberSource;
 }
 
+/** A team has at most this many members. */
+export const MAX_ROSTER_SIZE = 6;
+
 type SlotIndex = 0 | 1;
 type ActivePair = [number | null, number | null];
 
@@ -101,6 +104,63 @@ export class TeamRoster {
 		const changed = ([0, 1] as const).filter((i) => next[i] !== this.active[i]);
 		this.active = next;
 		for (const i of changed) this.#hydrate(i);
+	}
+
+	/** Whether the roster has no room for another member. */
+	get isFull(): boolean {
+		return this.members.length >= MAX_ROSTER_SIZE;
+	}
+
+	/**
+	 * Why `slotIndex`'s Pokémon can't be saved into the team, or `null` if
+	 * it can: nothing picked, already a member, or no room left.
+	 */
+	addBlockedReason(slotIndex: SlotIndex): string | null {
+		if (!this.#slots[slotIndex].species) return 'Pick a Pokémon first';
+		if (this.active[slotIndex] !== null) return 'Already in the team';
+		if (this.isFull) return `The team is full (${MAX_ROSTER_SIZE})`;
+		return null;
+	}
+
+	/**
+	 * Saves what's in `slotIndex` as a new member of the team, which then
+	 * is that slot's member. Returns whether it was added (see
+	 * `addBlockedReason`).
+	 */
+	add(slotIndex: SlotIndex): boolean {
+		if (this.addBlockedReason(slotIndex) !== null) return false;
+		const data = slotToData(this.#slots[slotIndex]);
+		if (!data) return false;
+
+		this.members = [...this.members, { name: data.species, data, source: 'saved' }];
+		const next: ActivePair = [...this.active];
+		next[slotIndex] = this.members.length - 1;
+		this.active = next;
+		return true;
+	}
+
+	/**
+	 * Takes a member out of the team. If it was on the field, its slot keeps
+	 * the build it has (it just isn't part of the team anymore).
+	 */
+	remove(memberIndex: number): void {
+		if (!this.members[memberIndex]) return;
+		this.members = this.members.filter((_, i) => i !== memberIndex);
+		const shift = (a: number | null) =>
+			a === null || a === memberIndex ? null : a > memberIndex ? a - 1 : a;
+		this.active = [shift(this.active[0]), shift(this.active[1])];
+	}
+
+	/**
+	 * Stops `slotIndex` being its member's slot, for when the Pokémon in it
+	 * turns into a different one. Call `sync()` before the slot changes so
+	 * the member keeps the build the slot had; syncing afterwards would
+	 * overwrite it with the new Pokémon.
+	 */
+	detach(slotIndex: SlotIndex): void {
+		const next: ActivePair = [...this.active];
+		next[slotIndex] = null;
+		this.active = next;
 	}
 
 	/** Writes the active slots' current builds back into their members. */

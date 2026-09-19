@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { commonSetData } from '$lib/modules/damage-calculator';
+import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
 import {
 	isBareSet,
 	membersFromHandoff,
@@ -214,5 +215,112 @@ describe('isBareSet', () => {
 		expect(
 			isBareSet(set('Garchomp', { statPoints: { hp: 1, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } }))
 		).toBe(false);
+	});
+});
+
+describe('TeamRoster.add', () => {
+	const pick = (slot: TeamSlot, name: string) => {
+		slot.species = allSpecies.find((s) => s.name === name)!;
+	};
+
+	it('builds a team from an empty roster, one Pokémon at a time', () => {
+		const { slots, roster } = setup();
+		pick(slots[0], 'Garchomp');
+		slots[0].statPoints = { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 };
+		expect(roster.add(0)).toBe(true);
+		pick(slots[1], 'Incineroar');
+		expect(roster.add(1)).toBe(true);
+
+		expect(roster.members.map((m) => m.name)).toEqual(['Garchomp', 'Incineroar']);
+		expect(roster.members[0].data.statPoints).toMatchObject({ atk: 32, spe: 32 });
+		expect(roster.active).toEqual([0, 1]);
+		expect(roster.members.every((m) => m.source === 'saved')).toBe(true);
+	});
+
+	it('is blocked with a reason for an empty slot, a slot that is already a member and a full team', () => {
+		const { slots, roster } = setup();
+		expect(roster.addBlockedReason(0)).toMatch(/pick a pok/i);
+		expect(roster.add(0)).toBe(false);
+
+		pick(slots[0], 'Garchomp');
+		expect(roster.addBlockedReason(0)).toBeNull();
+		roster.add(0);
+		expect(roster.addBlockedReason(0)).toMatch(/already/i);
+		expect(roster.add(0)).toBe(false);
+		expect(roster.members).toHaveLength(1);
+
+		roster.load(members());
+		roster.detach(1);
+		expect(roster.isFull).toBe(true);
+		expect(roster.addBlockedReason(1)).toMatch(/full/i);
+		expect(roster.add(1)).toBe(false);
+		expect(roster.members).toHaveLength(6);
+	});
+
+	it('has room again after removing a member', () => {
+		const { roster } = setup();
+		roster.load(members());
+		roster.detach(1);
+		expect(roster.addBlockedReason(1)).toMatch(/full/i);
+		roster.remove(5);
+		expect(roster.addBlockedReason(1)).toBeNull();
+		expect(roster.add(1)).toBe(true);
+		expect(roster.members[5].name).toBe('Incineroar');
+	});
+});
+
+describe('TeamRoster.remove', () => {
+	it('takes a bench member out and shifts the active indices', () => {
+		const { slots, roster } = setup();
+		roster.load(members(), ['Rotom-Wash', 'Kingambit']);
+		expect(roster.active).toEqual([3, 5]);
+		roster.remove(0);
+		expect(roster.members.map((m) => m.name)).toEqual(SIX.slice(1));
+		expect(roster.active).toEqual([2, 4]);
+		expect(slots.map(speciesOf)).toEqual(['Rotom-Wash', 'Kingambit']);
+	});
+
+	it('keeps the slot as it is when the member on the field is removed', () => {
+		const { slots, roster } = setup();
+		roster.load(members({ Garchomp: { item: 'Choice Scarf' } }));
+		roster.remove(0);
+		expect(roster.active).toEqual([null, 0]);
+		expect(speciesOf(slots[0])).toBe('Garchomp');
+		expect(slots[0].item?.name).toBe('Choice Scarf');
+		expect(roster.members.map((m) => m.name)).toEqual(SIX.slice(1));
+	});
+
+	it('ignores an unknown member', () => {
+		const { roster } = setup();
+		roster.load(members());
+		roster.remove(42);
+		expect(roster.members).toHaveLength(6);
+	});
+
+	it('lets the removed Pokémon be saved again from its slot', () => {
+		const { roster } = setup();
+		roster.load(members());
+		roster.remove(0);
+		expect(roster.addBlockedReason(0)).toBeNull();
+		expect(roster.add(0)).toBe(true);
+		expect(roster.members.at(-1)?.name).toBe('Garchomp');
+	});
+});
+
+describe('TeamRoster.detach', () => {
+	it('unlinks the slot; its member keeps the build synced before the change', () => {
+		const { slots, roster } = setup();
+		roster.load(members());
+		slots[0].statPoints = { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 2 };
+		roster.sync();
+		slots[0].species = allSpecies.find((s) => s.name === 'Kingambit')!;
+		roster.detach(0);
+
+		expect(roster.active).toEqual([null, 1]);
+		expect(roster.members[0].data.species).toBe('Garchomp');
+		expect(roster.members[0].data.statPoints).toMatchObject({ atk: 32, spe: 2 });
+		// the slot is a new Pokémon now, free to be saved as a new member
+		roster.remove(5);
+		expect(roster.addBlockedReason(0)).toBeNull();
 	});
 });

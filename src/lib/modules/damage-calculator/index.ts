@@ -3,6 +3,7 @@ export { commonSetData } from './calc/commonSetData';
 export { applySetData, slotToData } from './calc/setData';
 export {
 	isBareSet,
+	MAX_ROSTER_SIZE,
 	loadHandoff,
 	membersFromHandoff,
 	rivalSetsToSave,

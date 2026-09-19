@@ -7,7 +7,8 @@
 	/**
 	 * The whole team behind a side (up to 6), with the two on the field
 	 * marked. Each member has a "1" and a "2" button that bring it into that
-	 * slot (swapping if it's in the other one).
+	 * slot (swapping if it's in the other one), and a trash button that takes
+	 * it out of the team.
 	 */
 	let { roster }: { roster: TeamRoster } = $props();
 
@@ -34,6 +35,30 @@
 							<div class="text-[10px] text-amber-400">{SOURCE_LABELS[member.source]}</div>
 						{/if}
 					</div>
+					<button
+						type="button"
+						aria-label="Remove {member.name} from the team"
+						title="Remove from the team"
+						onclick={() => roster.remove(i)}
+						class="ml-auto shrink-0 self-start rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-red-400"
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<polyline points="3 6 5 6 21 6" />
+							<path
+								d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+							/>
+						</svg>
+					</button>
 				</div>
 				<div class="flex items-center gap-1">
 					<span class="mr-auto text-[10px] text-gray-500">
