@@ -18,6 +18,12 @@ export interface HandoffMember {
 
 export interface CalcHandoff {
 	createdAt: number;
+	/**
+	 * `match`: opened from a match form, both teams loaded and the rival's
+	 * sets can be saved back to it (the default). `team`: just a team's own
+	 * six, nothing to save back.
+	 */
+	purpose?: 'match' | 'team';
 	/** Shown in the calculator, e.g. the planner team's name. */
 	teamName?: string;
 	/** Up to 6, the whole team. */

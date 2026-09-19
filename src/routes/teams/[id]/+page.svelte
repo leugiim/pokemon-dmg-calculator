@@ -6,7 +6,13 @@
 	import MatchHistory from '$lib/components/team-planner/MatchHistory.svelte';
 	import PokemonCard from '$lib/components/team-planner/PokemonCard.svelte';
 	import StatsOverview from '$lib/components/team-planner/StatsOverview.svelte';
-	import { computeTeamStats, displayName, planner } from '$lib/modules/team-planner';
+	import { generateId, writeHandoff } from '$lib/modules/shared';
+	import {
+		buildTeamHandoff,
+		computeTeamStats,
+		displayName,
+		planner
+	} from '$lib/modules/team-planner';
 
 	const id = $derived(page.params.id ?? '');
 	const team = $derived(planner.teams.find((t) => t.id === id));
@@ -19,6 +25,20 @@
 	$effect(() => {
 		if (id) planner.loadMatches(id);
 	});
+
+	let calcError = $state('');
+
+	/** Opens the calculator in a new tab with just this team's six. */
+	function openInCalculator() {
+		if (!team) return;
+		const handoffId = generateId();
+		if (!writeHandoff(handoffId, buildTeamHandoff(team))) {
+			calcError = "Couldn't open the calculator (browser storage unavailable).";
+			return;
+		}
+		calcError = '';
+		window.open(`${resolve('/calc')}?handoff=${encodeURIComponent(handoffId)}`, '_blank');
+	}
 </script>
 
 {#if !planner.loaded}
@@ -32,9 +52,14 @@
 		<h1 class="text-2xl font-bold text-gray-100">{team.name}</h1>
 		<div class="ml-auto flex gap-2">
 			<Button href={resolve('/teams/[id]/edit', { id })}>Edit Pokepaste</Button>
+			<Button onclick={openInCalculator}>Open in calculator</Button>
 			<Button variant="primary" href={resolve('/teams/[id]/match/new', { id })}>+ Add match</Button>
 		</div>
 	</header>
+
+	{#if calcError}
+		<p class="text-sm text-red-400">{calcError}</p>
+	{/if}
 
 	<section class="flex flex-col gap-3">
 		<h2 class="text-lg font-semibold text-gray-100">Team</h2>

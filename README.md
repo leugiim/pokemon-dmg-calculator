@@ -3,7 +3,7 @@
 VGC tools for Pokémon Champions (doubles, Reg M-C), in one SvelteKit app:
 
 - **Damage Calculator** (`/calc`): a 2v2 damage calculator. You pick 2 Pokémon per side and get the damage of every attacker's moves against every opposing target, with doubles-specific mechanics (spread moves, ally support, field abilities...).
-- **Team Planner** (`/teams`): keep your teams from a Pokepaste, log your matches and see win rates, leads and toughest opponents. Ported from the standalone [`pokemon-team-stats`](https://github.com/leugiim/pokemon-team-stats) app. Data lives in your browser (`localStorage`), with JSON export/import of a team's match history. From a match you can open the calculator with both whole teams loaded (6 each; pick who's on the field) and save the rival sets you tweak back to the match.
+- **Team Planner** (`/teams`): keep your teams from a Pokepaste, log your matches and see win rates, leads and toughest opponents. Ported from the standalone [`pokemon-team-stats`](https://github.com/leugiim/pokemon-team-stats) app. Data lives in your browser (`localStorage`), with JSON export/import of a team's match history. From a team you can open the calculator with its six loaded; from a match, with both whole teams loaded (6 each; pick who's on the field) and save the rival sets you tweak back to the match.
 
 This repo used to be `pokemon-dmg-calculator` (the calculator on its own).
 

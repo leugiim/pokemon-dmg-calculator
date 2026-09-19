@@ -25,6 +25,7 @@
 	// page is prerendered and has no query string then.
 	let handoffId = $state<string | null>(null);
 	let handoffTitle = $state('');
+	let fromMatch = $state(true);
 	let handoffMissing = $state(false);
 	let saved = $state<'idle' | 'saved' | 'failed'>('idle');
 
@@ -39,6 +40,7 @@
 		loadHandoff(handoff);
 		handoffId = id;
 		handoffTitle = handoff.teamName ?? 'your team';
+		fromMatch = handoff.purpose !== 'team';
 	});
 
 	function saveRivalSets() {
@@ -60,27 +62,34 @@
 		<div
 			class="flex flex-wrap items-center gap-3 rounded-xl border border-sky-800 bg-sky-950/40 px-4 py-3 text-sm text-gray-200"
 		>
-			<span>
-				Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as Team B.
-				Pick who's on the field with the 1 / 2 buttons.
-			</span>
-			<div class="ml-auto flex items-center gap-3">
-				{#if saved === 'saved'}
-					<span class="text-xs text-emerald-400">
-						Saved. Go back to the match tab: the rival sets are there.
-					</span>
-				{:else if saved === 'failed'}
-					<span class="text-xs text-red-400">Couldn't save (browser storage unavailable).</span>
-				{/if}
-				<Button size="sm" variant="primary" onclick={saveRivalSets}>
-					Save rival sets to the match
-				</Button>
-			</div>
+			{#if fromMatch}
+				<span>
+					Loaded from your match: <strong>{handoffTitle}</strong> as Team A, the opposing team as Team
+					B. Pick who's on the field with the 1 / 2 buttons.
+				</span>
+				<div class="ml-auto flex items-center gap-3">
+					{#if saved === 'saved'}
+						<span class="text-xs text-emerald-400">
+							Saved. Go back to the match tab: the rival sets are there.
+						</span>
+					{:else if saved === 'failed'}
+						<span class="text-xs text-red-400">Couldn't save (browser storage unavailable).</span>
+					{/if}
+					<Button size="sm" variant="primary" onclick={saveRivalSets}>
+						Save rival sets to the match
+					</Button>
+				</div>
+			{:else}
+				<span>
+					Loaded your team: <strong>{handoffTitle}</strong> as Team A. Pick who's on the field with the
+					1 / 2 buttons; Team B is yours to fill in.
+				</span>
+			{/if}
 		</div>
 	{:else if handoffMissing}
 		<p class="rounded-xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
-			That match data is no longer available (it expires after a day). Open the calculator again
-			from the match.
+			That data is no longer available (it expires after a day). Open the calculator again from the
+			team or the match.
 		</p>
 	{/if}
 
