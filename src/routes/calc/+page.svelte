@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
 	import {
 		teamA,
 		teamB,
@@ -14,9 +15,17 @@
 	import SideConditionsToggles from '$lib/components/damage-calculator/conditions/SideConditionsToggles.svelte';
 	import TeamSlotCard from '$lib/components/damage-calculator/team/TeamSlotCard.svelte';
 	import RosterStrip from '$lib/components/damage-calculator/team/RosterStrip.svelte';
+	import TeamToolbar from '$lib/components/damage-calculator/team/TeamToolbar.svelte';
 	import Button from '$lib/components/shared/ui/Button.svelte';
 	import { loadHandoff, rivalSetsToSave, rosterA, rosterB } from '$lib/modules/damage-calculator';
-	import { readHandoff, writeHandoffResult } from '$lib/modules/shared';
+	import {
+		exportTeamPaste,
+		generateId,
+		readHandoff,
+		writeHandoffResult,
+		type PokemonSetData
+	} from '$lib/modules/shared';
+	import { displayName, planner } from '$lib/modules/team-planner';
 	import { providesIntimidate } from '$lib/modules/damage-calculator/calc/sideConditions';
 
 	// A match opened from the team planner (`/calc?handoff=<id>`): both whole
@@ -41,6 +50,19 @@
 		handoffTitle = handoff.teamName ?? 'your team';
 		fromMatch = handoff.purpose !== 'team';
 	});
+
+	/** "Save as new team": the calculator hands the team over, the planner keeps it. */
+	function saveAsNewTeam(sets: PokemonSetData[], name: string) {
+		const team = {
+			id: generateId(),
+			name: name.trim() || sets.map(displayName).join(' / '),
+			paste: exportTeamPaste(sets),
+			pokemon: sets,
+			createdAt: Date.now()
+		};
+		planner.saveTeam(team);
+		return { id: team.id, name: team.name };
+	}
 
 	function saveRivalSets() {
 		if (!handoffId) return;
@@ -94,7 +116,12 @@
 
 	<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_1fr]">
 		<section class="@container flex flex-col gap-4">
-			<h2 class="text-center text-sm font-semibold text-gray-300">Team A</h2>
+			<TeamToolbar
+				title="Team A"
+				roster={rosterA}
+				onsaveteam={saveAsNewTeam}
+				teamHref={(id) => resolve('/teams/[id]', { id })}
+			/>
 			<RosterStrip roster={rosterA} />
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard
@@ -108,7 +135,12 @@
 		</section>
 
 		<section class="@container flex flex-col gap-4">
-			<h2 class="text-center text-sm font-semibold text-gray-300">Team B</h2>
+			<TeamToolbar
+				title="Team B"
+				roster={rosterB}
+				onsaveteam={saveAsNewTeam}
+				teamHref={(id) => resolve('/teams/[id]', { id })}
+			/>
 			<RosterStrip roster={rosterB} />
 			{#each [0, 1] as i (i)}
 				<TeamSlotCard

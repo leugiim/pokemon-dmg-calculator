@@ -11,7 +11,7 @@ export {
 	type HandoffResult
 } from './calc-handoff';
 export { generateId } from './id';
-export { parsePokePasteSet, parseTeamPaste } from './paste';
+export { exportPokePasteSet, exportTeamPaste, parsePokePasteSet, parseTeamPaste } from './paste';
 export {
 	clampStatPoints,
 	emptyStatPointsData,

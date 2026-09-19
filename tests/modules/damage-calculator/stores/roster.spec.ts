@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { commonSetData } from '$lib/modules/damage-calculator';
 import { allSpecies } from '$lib/modules/shared/species/generation';
 import {
+	importTeamPaste,
 	isBareSet,
 	membersFromHandoff,
 	TeamRoster,
 	type RosterMember
 } from '$lib/modules/damage-calculator/stores/roster.svelte';
 import { TeamSlot } from '$lib/modules/damage-calculator/stores/team.svelte';
-import type { PokemonSetData } from '$lib/modules/shared';
+import { exportTeamPaste, type PokemonSetData } from '$lib/modules/shared';
 
 const set = (species: string, over: Partial<PokemonSetData> = {}): PokemonSetData => ({
 	species,
@@ -322,5 +323,86 @@ describe('TeamRoster.detach', () => {
 		// the slot is a new Pokémon now, free to be saved as a new member
 		roster.remove(5);
 		expect(roster.addBlockedReason(0)).toBeNull();
+	});
+});
+
+describe('TeamRoster.currentTeam', () => {
+	it('is the whole roster, with the edits of the active slots', () => {
+		const { slots, roster } = setup();
+		roster.load(members());
+		slots[0].statPoints = { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 };
+		const team = roster.currentTeam();
+		expect(team.map((d) => d.species)).toEqual(SIX);
+		expect(team[0].statPoints).toMatchObject({ atk: 32, spe: 32 });
+	});
+
+	it('is the two slots while there is no roster yet', () => {
+		const { slots, roster } = setup();
+		slots[0].species = allSpecies.find((s) => s.name === 'Garchomp')!;
+		expect(roster.currentTeam().map((d) => d.species)).toEqual(['Garchomp']);
+		slots[1].species = allSpecies.find((s) => s.name === 'Incineroar')!;
+		expect(roster.currentTeam().map((d) => d.species)).toEqual(['Garchomp', 'Incineroar']);
+	});
+
+	it('is empty with nothing anywhere', () => {
+		expect(setup().roster.currentTeam()).toEqual([]);
+	});
+});
+
+describe('importTeamPaste', () => {
+	const PASTE = `Kingambit @ Black Glasses
+Ability: Defiant
+EVs: 32 HP / 32 Atk
+Adamant Nature
+- Sucker Punch
+- Kowtow Cleave
+
+Sparky (Rotom-Wash) @ Sitrus Berry
+Ability: Levitate
+- Hydro Pump
+
+Amoonguss @ Rocky Helmet
+- Spore`;
+
+	it('replaces the team with the pasted one and puts the first two on the field', () => {
+		const { slots, roster } = setup();
+		roster.load(members());
+		const result = importTeamPaste(roster, PASTE);
+
+		expect(result).toEqual({ imported: 3, unknown: [] });
+		expect(roster.members.map((m) => m.name)).toEqual(['Kingambit', 'Sparky', 'Amoonguss']);
+		expect(roster.active).toEqual([0, 1]);
+		expect(slots.map(speciesOf)).toEqual(['Kingambit', 'Rotom-Wash']);
+		expect(slots[0].item?.name).toBe('Black Glasses');
+		expect(slots[0].statPoints).toMatchObject({ hp: 32, atk: 32 });
+		expect(roster.members.every((m) => m.source === 'saved')).toBe(true);
+	});
+
+	it('keeps at most 6, leaving out species it does not know and reporting them', () => {
+		const { roster } = setup();
+		const text = [...SIX, 'Garchomp', 'Not A Real Mon'].map((n) => `${n}\n- Protect`).join('\n\n');
+		const result = importTeamPaste(roster, text);
+		expect(result.imported).toBe(6);
+		expect(result.unknown).toEqual(['Not A Real Mon']);
+		expect(roster.members).toHaveLength(6);
+	});
+
+	it('changes nothing when there is no Pokémon in the paste', () => {
+		const { roster } = setup();
+		roster.load(members());
+		expect(importTeamPaste(roster, '')).toEqual({ imported: 0, unknown: [] });
+		expect(importTeamPaste(roster, '...\n- Protect')).toEqual({ imported: 0, unknown: ['...'] });
+		expect(roster.members).toHaveLength(6);
+	});
+
+	it('round-trips with exporting the team', () => {
+		const { roster } = setup();
+		roster.load(
+			members({ Garchomp: { item: 'Choice Scarf', nature: 'Jolly', moves: ['Earthquake'] } })
+		);
+		const text = exportTeamPaste(roster.currentTeam());
+		const other = setup().roster;
+		importTeamPaste(other, text);
+		expect(other.currentTeam()).toEqual(roster.currentTeam());
 	});
 });
