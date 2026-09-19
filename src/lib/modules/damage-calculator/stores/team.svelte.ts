@@ -9,6 +9,8 @@ import {
 	type StatBoosts,
 	type StatPoints
 } from '$lib/modules/damage-calculator/calc/format';
+import { applySetData, slotToData } from '$lib/modules/damage-calculator/calc/setData';
+import type { PokemonSetData } from '$lib/modules/shared';
 
 /** A Pokémon's 4 move slots — any of them can be empty. */
 export type MoveSlots = [MoveItem | null, MoveItem | null, MoveItem | null, MoveItem | null];
@@ -174,6 +176,22 @@ export class TeamSlot {
 
 	get species(): SpeciesItem | null {
 		return this.#species;
+	}
+
+	/**
+	 * A new slot holding `data`'s build (see `applySetData`; names that
+	 * don't match this app's data are skipped, use `applySetData` directly
+	 * to get them back).
+	 */
+	static fromData(data: PokemonSetData): TeamSlot {
+		const slot = new TeamSlot();
+		applySetData(slot, data);
+		return slot;
+	}
+
+	/** This slot's build as plain data, or `null` while it has no species. */
+	toData(): PokemonSetData | null {
+		return slotToData(this);
 	}
 
 	/**
