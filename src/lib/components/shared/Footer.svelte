@@ -6,13 +6,13 @@
 	of the Common Sets feature's vendored data (ADR-0006) — this footer is
 	the one place a visitor sees any of that.
 -->
-<!-- No horizontal padding of its own — nests inside +page.svelte's own
+<!-- No horizontal padding of its own — nests inside each page's own
      px-4/sm:px-8/lg:px-16 container, which already insets every other
      section the same way. -->
 <footer class="mt-8 border-t border-gray-800 py-6 text-center text-[11px] text-gray-500">
 	<p>
 		<a
-			href="https://github.com/leugiim/pokemon-dmg-calculator"
+			href="https://github.com/leugiim/pokemon-tools"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="text-gray-400 underline hover:text-gray-200"
