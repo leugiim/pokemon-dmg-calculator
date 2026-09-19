@@ -5,7 +5,7 @@ import {
 	hasCommonSets,
 	type CommonSet
 } from '$lib/modules/damage-calculator/calc/commonSets';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { allSpecies } from '$lib/modules/shared/species/generation';
 import { TeamSlot } from '$lib/modules/damage-calculator/stores/team.svelte';
 
 function species(name: string) {

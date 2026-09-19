@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { commonSetsFor, type CommonSet } from '$lib/modules/damage-calculator/calc/commonSets';
 	import { formatStatPoints } from '$lib/modules/damage-calculator/calc/format';
-	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 
 	/**
 	 * `open`/`species` come from `TeamSlotCard`'s own state — this

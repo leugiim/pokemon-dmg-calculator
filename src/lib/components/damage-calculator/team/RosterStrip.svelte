@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+	import { allSpecies } from '$lib/modules/shared/species/generation';
 	import { findByName } from '$lib/modules/damage-calculator/calc/pokepaste';
 	import type { TeamRoster } from '$lib/modules/damage-calculator/stores/roster.svelte';
-	import SpeciesSprite from '../display/SpeciesSprite.svelte';
+	import SpeciesSprite from '$lib/components/shared/species/SpeciesSprite.svelte';
 
 	/**
 	 * The whole team behind a side (up to 6), with the two on the field

@@ -39,11 +39,11 @@ src/
     components/
       damage-calculator/   # UI of the calculator
       team-planner/        # UI of the planner
-      shared/              # generic UI kit (ui/, Footer)
+      shared/              # generic UI kit (ui/, Footer) and the species picker
     modules/
       damage-calculator/   # calc/ (engine) and stores/
       team-planner/        # business logic of the planner
-      shared/              # code used by both tools
+      shared/              # code used by both tools (set data, species data, storage)
   routes/
     +page.svelte           # home
     calc/                  # damage calculator

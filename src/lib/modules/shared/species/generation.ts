@@ -436,4 +436,20 @@ export function formsOf(species: SpeciesItem): { label: string; species: Species
 	return [{ label: 'Normal', species: normal }, ...(battleFormsByBase.get(baseName) ?? [])];
 }
 
+const norm = (name: string) => name.trim().toLowerCase();
+
+/**
+ * The species called `name`: its own name (case-insensitive) or the label
+ * the picker shows for it ("Aegislash" for Aegislash-Shield). `undefined`
+ * for anything else, e.g. a nickname or a typo.
+ */
+export function findSpecies(name: string): SpeciesItem | undefined {
+	const q = norm(name);
+	if (!q) return undefined;
+	return (
+		allSpecies.find((s) => norm(s.name) === q) ??
+		allSpecies.find((s) => norm(speciesLabel(s)) === q)
+	);
+}
+
 export { toID };

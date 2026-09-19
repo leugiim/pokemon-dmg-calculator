@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { commonSetData } from '$lib/modules/damage-calculator';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { allSpecies } from '$lib/modules/shared/species/generation';
 import {
 	isBareSet,
 	membersFromHandoff,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calcStat } from '@smogon/calc';
-import { GEN_NUM, allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { GEN_NUM, allSpecies } from '$lib/modules/shared/species/generation';
 import {
 	allNatures,
 	calcChampionsStat,

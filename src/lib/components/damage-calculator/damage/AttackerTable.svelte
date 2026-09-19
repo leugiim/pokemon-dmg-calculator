@@ -13,7 +13,7 @@
 	} from '$lib/modules/damage-calculator/calc/moves';
 	import type { DamageMatrixAttacker } from '$lib/modules/damage-calculator/calc/matrix';
 	import DamageResult from './DamageResult.svelte';
-	import SpeciesSprite from '../display/SpeciesSprite.svelte';
+	import SpeciesSprite from '$lib/components/shared/species/SpeciesSprite.svelte';
 	import NumberStepper from '$lib/components/shared/ui/NumberStepper.svelte';
 	import ToggleButton from '$lib/components/shared/ui/ToggleButton.svelte';
 

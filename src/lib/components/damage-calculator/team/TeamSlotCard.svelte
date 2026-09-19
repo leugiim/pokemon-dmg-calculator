@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { TeamRoster } from '$lib/modules/damage-calculator/stores/roster.svelte';
 	import type { TeamSlot } from '$lib/modules/damage-calculator/stores/team.svelte';
-	import type { SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import type { SpeciesItem } from '$lib/modules/shared/species/generation';
 	import { abilitiesOf } from '$lib/modules/damage-calculator/calc/abilities';
 	import {
 		applyCommonSet,
@@ -17,14 +17,14 @@
 	import { field } from '$lib/modules/damage-calculator/stores/field.svelte';
 	import { exportPokePaste, importPokePaste } from '$lib/modules/damage-calculator/calc/pokepaste';
 	import AbilityCombobox from '../combobox/AbilityCombobox.svelte';
-	import PokemonCombobox from '../combobox/PokemonCombobox.svelte';
+	import PokemonCombobox from '$lib/components/shared/species/PokemonCombobox.svelte';
 	import CommonSetsModal from './CommonSetsModal.svelte';
 	import FormeCombobox from '../combobox/FormeCombobox.svelte';
 	import GenderToggle from './GenderToggle.svelte';
 	import ItemCombobox from '../combobox/ItemCombobox.svelte';
 	import MoveSlot from './MoveSlot.svelte';
 	import NatureCombobox from '../combobox/NatureCombobox.svelte';
-	import SpeciesSprite from '../display/SpeciesSprite.svelte';
+	import SpeciesSprite from '$lib/components/shared/species/SpeciesSprite.svelte';
 	import StatPointBars from './StatPointBars.svelte';
 	import TypeBadge from '../display/TypeBadge.svelte';
 

@@ -2,7 +2,7 @@ import type { PokemonSetData } from '$lib/modules/shared';
 import { clampStatPoints, emptyStatPointsData } from '$lib/modules/shared';
 import type { MoveSlots, TeamSlot } from '../stores/team.svelte';
 import { allNatures, emptyStatBoosts, emptyStatPoints, NEUTRAL_NATURE, STAT_ORDER } from './format';
-import { allSpecies, type SpeciesItem } from './generation';
+import { allSpecies, type SpeciesItem } from '$lib/modules/shared/species/generation';
 import { allItems } from './items';
 import { allMoves } from './moves';
 import { findByName } from './pokepaste';

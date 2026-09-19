@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allSpecies } from '$lib/modules/damage-calculator/calc/generation';
+import { allSpecies } from '$lib/modules/shared/species/generation';
 import { pokeApiSlug } from '$lib/modules/damage-calculator/calc/abilities';
 
 function species(name: string) {

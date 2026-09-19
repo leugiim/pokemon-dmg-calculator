@@ -5,7 +5,7 @@ import {
 	genderPairOf,
 	pickableSpecies,
 	speciesLabel
-} from '$lib/modules/damage-calculator/calc/generation';
+} from '$lib/modules/shared/species/generation';
 
 function hasSpecies(name: string): boolean {
 	return allSpecies.some((s) => s.name === name);

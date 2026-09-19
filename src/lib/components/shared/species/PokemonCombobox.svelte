@@ -3,9 +3,9 @@
 		pickableSpecies,
 		speciesLabel,
 		type SpeciesItem
-	} from '$lib/modules/damage-calculator/calc/generation';
+	} from '$lib/modules/shared/species/generation';
 	import SearchableCombobox from '$lib/components/shared/ui/SearchableCombobox.svelte';
-	import SpeciesSprite from '../display/SpeciesSprite.svelte';
+	import SpeciesSprite from './SpeciesSprite.svelte';
 
 	let { selected = $bindable(null) }: { selected?: SpeciesItem | null } = $props();
 </script>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formsOf, type SpeciesItem } from '$lib/modules/damage-calculator/calc/generation';
+	import { formsOf, type SpeciesItem } from '$lib/modules/shared/species/generation';
 	import SearchableCombobox from '$lib/components/shared/ui/SearchableCombobox.svelte';
 
 	let {

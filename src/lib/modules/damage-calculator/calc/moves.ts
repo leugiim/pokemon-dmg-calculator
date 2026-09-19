@@ -1,4 +1,4 @@
-import { championsGen, gen } from './generation';
+import { championsGen, gen } from '$lib/modules/shared/species/generation';
 
 /**
  * All moves available in this generation, sorted alphabetically —

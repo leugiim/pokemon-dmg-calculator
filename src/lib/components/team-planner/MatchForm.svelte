@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/shared/ui/Button.svelte';
@@ -14,7 +13,6 @@
 	} from '$lib/modules/shared';
 	import {
 		displayName,
-		getPokemonNames,
 		LEAD_SIZE,
 		padRivalSlots,
 		RIVAL_TEAM_SIZE,
@@ -29,7 +27,7 @@
 		type Team
 	} from '$lib/modules/team-planner';
 	import PokeToggleGroup from './PokeToggleGroup.svelte';
-	import PokemonInput from './PokemonInput.svelte';
+	import SpeciesField from './SpeciesField.svelte';
 
 	/** Records a match for `team`, or edits the match `matchId`. */
 	let { team, matchId = undefined }: { team: Team; matchId?: string } = $props();
@@ -58,11 +56,6 @@
 	// Ties this form to the calculator tab it opens.
 	const handoffId = generateId();
 	let error = $state('');
-	let pokemonNames = $state<string[]>([]);
-
-	onMount(() => {
-		getPokemonNames().then((names) => (pokemonNames = names));
-	});
 
 	const ownNames = $derived(team.pokemon.map(displayName));
 	const rivalFilled = $derived(rivalTeam.map((n) => n.trim()).filter(Boolean));
@@ -142,7 +135,7 @@
 		}
 		rivalSets = sets;
 		rivalPaste = rivalPasteText.trim();
-		rivalTeam = padRivalSlots(sets.map(displayName));
+		rivalTeam = padRivalSlots(sets.map((set) => set.species));
 		onRivalChange();
 		rivalNotice = `${sets.length} rival sets loaded from the paste.`;
 	}
@@ -221,12 +214,7 @@
 		<span class={label}>Opposing team <span class={hint}>(optional, up to 6 Pokémon)</span></span>
 		<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 			{#each [...rivalTeam.keys()] as i (i)}
-				<PokemonInput
-					bind:value={rivalTeam[i]}
-					allNames={pokemonNames}
-					placeholder={`Pokémon ${i + 1}`}
-					onchange={onRivalChange}
-				/>
+				<SpeciesField bind:value={rivalTeam[i]} onchange={onRivalChange} />
 			{/each}
 		</div>
 

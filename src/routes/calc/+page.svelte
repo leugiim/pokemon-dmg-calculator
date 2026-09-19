@@ -13,7 +13,6 @@
 	import FieldConditionsPicker from '$lib/components/damage-calculator/conditions/FieldConditionsPicker.svelte';
 	import SideConditionsToggles from '$lib/components/damage-calculator/conditions/SideConditionsToggles.svelte';
 	import TeamSlotCard from '$lib/components/damage-calculator/team/TeamSlotCard.svelte';
-	import Footer from '$lib/components/shared/Footer.svelte';
 	import RosterStrip from '$lib/components/damage-calculator/team/RosterStrip.svelte';
 	import Button from '$lib/components/shared/ui/Button.svelte';
 	import { loadHandoff, rivalSetsToSave, rosterA, rosterB } from '$lib/modules/damage-calculator';
@@ -160,6 +159,4 @@
 			</div>
 		</section>
 	</div>
-
-	<Footer />
 </div>
