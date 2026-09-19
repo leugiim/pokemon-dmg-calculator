@@ -40,7 +40,7 @@
 		intimidated = false
 	}: {
 		slot: TeamSlot;
-		/** The team this slot belongs to, for "Save in team". */
+		/** The team this slot belongs to, for "Save". */
 		roster: TeamRoster;
 		/** Which of the side's two slots this is. */
 		slotIndex: 0 | 1;
@@ -254,21 +254,24 @@
 			<button
 				type="button"
 				{disabled}
+				title="Copy this Pokémon as a PokePaste"
 				onclick={copyPokePaste}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
 			>
-				{copied ? 'Copied!' : 'Copy PokePaste'}
+				{copied ? 'Copied!' : 'Export'}
 			</button>
 			<button
 				type="button"
+				title="Import a PokePaste into this slot"
 				onclick={() => (importOpen = !importOpen)}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700"
 			>
-				Import PokePaste
+				Import
 			</button>
 			<button
 				type="button"
 				disabled={!hasCommonSets(slot.species)}
+				title="Load a curated common set for this Pokémon"
 				onclick={() => (commonSetsOpen = true)}
 				class="self-start rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-700 disabled:pointer-events-none disabled:opacity-30"
 			>
@@ -277,11 +280,11 @@
 			<button
 				type="button"
 				disabled={addBlockedReason !== null}
-				title={addBlockedReason ?? 'Add this Pokémon to the team above'}
+				title={addBlockedReason ?? 'Save this Pokémon in the team above'}
 				onclick={() => roster.add(slotIndex)}
 				class="self-start rounded border border-sky-700 bg-sky-900/40 px-2 py-1 text-[10px] text-sky-200 hover:bg-sky-800/60 disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-300 disabled:opacity-30"
 			>
-				Save in team
+				Save
 			</button>
 		</div>
 		{#if pasteFallback}
