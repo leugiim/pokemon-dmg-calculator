@@ -1,13 +1,19 @@
 <script lang="ts">
-	import { teamA, teamB, sides, allySupport, sideConditions } from '$lib/stores/team.svelte';
-	import { field } from '$lib/stores/field.svelte';
-	import AllySupportToggles from '$lib/components/conditions/AllySupportToggles.svelte';
-	import DamageMatrix from '$lib/components/damage/DamageMatrix.svelte';
-	import FieldConditionsPicker from '$lib/components/conditions/FieldConditionsPicker.svelte';
-	import SideConditionsToggles from '$lib/components/conditions/SideConditionsToggles.svelte';
-	import TeamSlotCard from '$lib/components/team/TeamSlotCard.svelte';
-	import Footer from '$lib/components/Footer.svelte';
-	import { providesIntimidate } from '$lib/calc/sideConditions';
+	import {
+		teamA,
+		teamB,
+		sides,
+		allySupport,
+		sideConditions
+	} from '$lib/modules/damage-calculator/stores/team.svelte';
+	import { field } from '$lib/modules/damage-calculator/stores/field.svelte';
+	import AllySupportToggles from '$lib/components/damage-calculator/conditions/AllySupportToggles.svelte';
+	import DamageMatrix from '$lib/components/damage-calculator/damage/DamageMatrix.svelte';
+	import FieldConditionsPicker from '$lib/components/damage-calculator/conditions/FieldConditionsPicker.svelte';
+	import SideConditionsToggles from '$lib/components/damage-calculator/conditions/SideConditionsToggles.svelte';
+	import TeamSlotCard from '$lib/components/damage-calculator/team/TeamSlotCard.svelte';
+	import Footer from '$lib/components/shared/Footer.svelte';
+	import { providesIntimidate } from '$lib/modules/damage-calculator/calc/sideConditions';
 
 	const teamADisabled = $derived(!teamA[0].species && !teamA[1].species);
 	const teamBDisabled = $derived(!teamB[0].species && !teamB[1].species);
