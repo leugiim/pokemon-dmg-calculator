@@ -21,6 +21,41 @@ Rules follow Pokémon Champions: level 50, IVs fixed at 31, and Stat Points (0-3
 
 See [`CONTEXT.md`](CONTEXT.md) for the domain glossary and [`docs/adr`](docs/adr) for design decisions.
 
+## Moving your data from the old planner
+
+The standalone [`pokemon-team-stats`](https://github.com/leugiim/pokemon-team-stats) app kept everything in the browser's `localStorage`, tied to the exact address it ran on (e.g. `http://localhost:5173`), so it can't follow you to a new address by itself. Two ways to bring it over:
+
+**All teams and matches at once** (with a console, in Chrome/Edge):
+
+1. Run the old app again on the same address you always used, open its DevTools console and run this. It copies your data to the clipboard as one line of text:
+
+   ```js
+   copy(
+   	btoa(
+   		unescape(
+   			encodeURIComponent(
+   				JSON.stringify(
+   					Object.fromEntries(Object.entries(localStorage).filter(([k]) => k.startsWith('pts_')))
+   				)
+   			)
+   		)
+   	)
+   );
+   ```
+
+2. Open the new site on `/teams`, open its console and run this, replacing `PASTE_HERE` with what you copied (it reloads on `/teams`; Chrome may ask you to type `allow pasting` first):
+
+   ```js
+   Object.entries(JSON.parse(decodeURIComponent(escape(atob('PASTE_HERE'))))).forEach(([k, v]) =>
+   	localStorage.setItem(k, v)
+   );
+   location.href = '/teams';
+   ```
+
+The planner picks the old data up on first load and converts it (the old keys are left untouched, so you can repeat it). **This only works while the new site has no teams of its own yet**: once it has saved anything, it stops looking at the old data. If you already created teams there, either remove those keys first (`Object.keys(localStorage).filter((k) => k.startsWith('pt:v1:')).forEach((k) => localStorage.removeItem(k))`, which deletes what you made in the new one) or use the second way.
+
+**One team at a time**: in the old app, open the team, use _Editar Pokepaste_ to copy its paste and _Exportar historial_ to copy its matches. In the new site, create the team from that paste and use _Import history_ on the team page.
+
 ## Tech stack
 
 - **SvelteKit** (Svelte 5, runes) + TypeScript, **Tailwind CSS 4**, **pnpm**.
