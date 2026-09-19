@@ -21,12 +21,14 @@
 		},
 		'/teams': {
 			title: 'Team Planner — Pokemon Tools',
-			description: 'Keep your VGC teams and track your match history and win rates.'
+			description:
+				'Keep your VGC teams and track your match history, win rates, leads and toughest opponents.'
 		}
 	};
 
 	const path = $derived(page.url.pathname.replace(/\/$/, '') || '/');
-	const meta = $derived(ROUTES[path] ?? ROUTES['/']);
+	// /teams/... pages share the planner's meta.
+	const meta = $derived(ROUTES[`/${path.split('/')[1] ?? ''}`] ?? ROUTES['/']);
 	const url = $derived(`${SITE_URL}${path === '/' ? '/' : path}`);
 
 	const LINKS = [

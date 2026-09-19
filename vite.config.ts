@@ -13,7 +13,9 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			// The planner's pages (/teams/...) render in the browser only, so
+			// they're served by this SPA fallback instead of prerendered files.
+			adapter: adapter({ fallback: '200.html' })
 		})
 	],
 	server: {
