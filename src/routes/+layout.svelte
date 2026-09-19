@@ -1,15 +1,44 @@
 <script lang="ts">
 	import './layout.css';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 
-	// Single-page app (see CONTEXT.md) — there's only ever one route, so a
-	// site-wide title/description/canonical here covers every page the
-	// same way a per-route one would, without duplicating it if a second
-	// route is ever added.
-	const SITE_URL = 'https://doubles-vgc-calc.leugiim.es/';
-	const TITLE = 'Pokemon DMG Calculator — 2v2 VGC Damage Calculator';
-	const DESCRIPTION =
-		'A competitive Pokémon VGC (doubles) damage calculator: build 2v2 teams and see the full damage matrix — every attacker/move against every opposing target, including doubles-only mechanics like spread damage and ally support.';
+	// Still the calculator's original domain: the new one for pokemon-tools
+	// isn't decided yet (see the deploy task), and this is the only place
+	// it's spelled out besides static/sitemap.xml and static/robots.txt.
+	const SITE_URL = 'https://doubles-vgc-calc.leugiim.es';
+
+	const ROUTES: Record<string, { title: string; description: string }> = {
+		'/': {
+			title: 'Pokemon Tools — VGC tools for Pokémon Champions',
+			description:
+				'Competitive Pokémon VGC (doubles) tools: a 2v2 damage calculator and a team planner to track your matches.'
+		},
+		'/calc': {
+			title: 'Damage Calculator — Pokemon Tools',
+			description:
+				'A competitive Pokémon VGC (doubles) damage calculator: build 2v2 teams and see the full damage matrix — every attacker/move against every opposing target, including doubles-only mechanics like spread damage and ally support.'
+		},
+		'/teams': {
+			title: 'Team Planner — Pokemon Tools',
+			description: 'Keep your VGC teams and track your match history and win rates.'
+		}
+	};
+
+	const path = $derived(page.url.pathname.replace(/\/$/, '') || '/');
+	const meta = $derived(ROUTES[path] ?? ROUTES['/']);
+	const url = $derived(`${SITE_URL}${path === '/' ? '/' : path}`);
+
+	const LINKS = [
+		{ href: '/', label: 'Home' },
+		{ href: '/calc', label: 'Calculator' },
+		{ href: '/teams', label: 'Teams' }
+	] as const;
+
+	function isActive(href: string) {
+		return href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
+	}
 
 	let { children } = $props();
 </script>
@@ -17,18 +46,40 @@
 <svelte:head>
 	<link rel="icon" type="image/svg+xml" href={favicon} />
 	<link rel="mask-icon" href={favicon} color="#ee1515" />
-	<link rel="canonical" href={SITE_URL} />
-	<title>{TITLE}</title>
-	<meta name="description" content={DESCRIPTION} />
+	<link rel="canonical" href={url} />
+	<title>{meta.title}</title>
+	<meta name="description" content={meta.description} />
 	<meta name="theme-color" content="#030712" />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content={SITE_URL} />
-	<meta property="og:title" content={TITLE} />
-	<meta property="og:description" content={DESCRIPTION} />
+	<meta property="og:url" content={url} />
+	<meta property="og:title" content={meta.title} />
+	<meta property="og:description" content={meta.description} />
 
 	<meta name="twitter:card" content="summary" />
-	<meta name="twitter:title" content={TITLE} />
-	<meta name="twitter:description" content={DESCRIPTION} />
+	<meta name="twitter:title" content={meta.title} />
+	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
-{@render children()}
+
+<div class="flex min-h-screen flex-col bg-gray-950">
+	<nav
+		class="flex items-center gap-1 border-b border-gray-800 px-4 py-2 sm:px-8 lg:px-16"
+		aria-label="Main"
+	>
+		<span class="mr-3 text-sm font-bold text-gray-100">Pokemon Tools</span>
+		{#each LINKS as link (link.href)}
+			<a
+				href={resolve(link.href)}
+				aria-current={isActive(link.href) ? 'page' : undefined}
+				class="rounded-md px-3 py-1 text-sm {isActive(link.href)
+					? 'bg-gray-800 text-gray-100'
+					: 'text-gray-400 hover:text-gray-200'}"
+			>
+				{link.label}
+			</a>
+		{/each}
+	</nav>
+	<main class="flex flex-1 flex-col">
+		{@render children()}
+	</main>
+</div>

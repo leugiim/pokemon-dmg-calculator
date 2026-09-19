@@ -1,4 +1,3 @@
-// The whole app is a single, fully client-side screen (no backend, no
-// server-rendered data) — prerender it so `adapter-static` can emit a
-// plain static build.
+// The whole app is fully client-side (no backend, no server-rendered data)
+// — prerender every route so `adapter-static` can emit a plain static build.
 export const prerender = true;

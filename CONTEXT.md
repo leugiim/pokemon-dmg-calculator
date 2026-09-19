@@ -1,6 +1,6 @@
-# Pokemon DMG Calculator
+# Pokemon Tools
 
-A VGC-style damage calculator for 2vs2 (doubles) battles: given two teams of two Pokémon each, computes damage for every attacker/target pairing. Not a turn simulator; each calculation is a point-in-time "what if".
+Two VGC tools for Pokémon Champions (doubles) in one app: a **Damage Calculator** (2vs2 point-in-time "what if", not a turn simulator) and a **Team Planner** (teams, matches and stats, being ported in; see ADR-0007). This file is the glossary; the calculator's terms come first, then the planner's.
 
 ## Language
 
@@ -84,3 +84,25 @@ A `TeamSlotCard`'s "Common Sets" button (next to "Import PokePaste") opens `Comm
 
 `ability` is the one field this doesn't treat like PokePaste import does: most of the vendored sets (123 of 151 at vendoring time) simply don't specify one at all — the source tool apparently leaves it to whatever's already selected rather than treating it as part of the set — so `CommonSet.ability` is `string | undefined`, and `applyCommonSet` leaves the slot's current ability alone when it's `undefined` rather than clearing it to `null` the way a PokePaste import's genuinely-absent ability does. A Mega Evolution's sets live under its base species (holding the Mega Stone as the `item`), never a separate `"X-Mega-Y"` key — applying one never switches the slot's own forme, same as import.
 _Avoid_: clearing `slot.ability` to `null` when a common set's own `ability` is `undefined` (destroys a perfectly good auto-filled ability for the ~80% of sets that just don't mention one — see ADR-0006)
+
+## Team Planner language
+
+_Planned; these terms come from the standalone `pokemon-team-stats` app and will be implemented as the planner is ported (ADR-0007)._
+
+**Team**:
+A named roster of up to 6 Pokémon, created from a Pokepaste. Not to be confused with `TeamId`/`TeamSlot` above, which are the two sides and positions of one calculation.
+
+**Match**:
+One recorded game played with a Team: result (win, loss or ongoing), the Team's roster at that time, the **Selection** and **Lead** picked, and the **Rival**'s team, selection and lead.
+
+**Roster**:
+The 6 Pokémon a Team had when a Match was played. Frozen on the Match, so later edits to the Team don't rewrite history.
+
+**Selection**:
+The 4 Pokémon of a Roster brought to a Match. The Rival also has one.
+
+**Lead**:
+The 2 Pokémon of a Selection that start on the field. The Rival also has one.
+
+**Rival**:
+The opponent of a Match. By default only 6 Pokémon names; optionally with full sets, so the calculator can be opened from a Match (missing sets are filled from Common Sets).
